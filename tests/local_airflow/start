@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+command -v realpath >/dev/null
+if [ ! $? ]; then
+  # resolve for mac
+  function realpath() {
+    python3 -c "import os; print(os.path.abspath('$1'))"
+  }
+fi
+
+CUR_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+
+source "$CUR_DIR/configure" || exit $?
+
+if [ "$#" -eq 0 ]; then
+  echo "----------------------"
+  echo "Running python version:"
+  python --version
+  echo "----------------------"
+  echo "Running airflow version:"
+  airflow version
+  echo "----------------------"
+  sleep 1
+  airflow scheduler &
+  SCHEDULER_PID="$!"
+  airflow webserver
+  kill "$SCHEDULER_PID"
+else
+  airflow "$@"
+fi

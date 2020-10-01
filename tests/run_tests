@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+command -v realpath >/dev/null
+if [ ! $? ]; then
+    # resolve for mac
+    function realpath() {
+        python3 -c "import os; print(os.path.abspath('$1'))"
+    }
+fi
+
+function log:sep() {
+    echo "---------------"
+    echo "$@"
+    echo
+}
+
+log:sep "Configure local airflow"
+
+CUR_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+source "$CUR_DIR/local_airflow/configure"
+
+log:sep "Airflow initdb"
+airflow initdb
