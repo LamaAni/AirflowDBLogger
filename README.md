@@ -47,7 +47,7 @@ SQL_ALCHEMY_POOL_PRE_PING=True
 SQL_ENGINE_ENCODING=utf-8
 ```
 
-Or use the airflow builtin shell,
+Or use the airflow builtin envs,
 
 ```shell
 export AIRFLOW__DB_LOGGER_[config value name]="my_value"
