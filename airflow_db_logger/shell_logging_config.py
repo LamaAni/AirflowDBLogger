@@ -1,5 +1,3 @@
-from airflow_db_logger.utils import style
-
 LOG_LEVEL = "INFO"
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"

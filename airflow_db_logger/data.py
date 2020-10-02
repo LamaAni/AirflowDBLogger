@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Index, DateTime, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from airflow.utils.sqlalchemy import UtcDateTime
-from airflow_db_logger.config import DB_LOGGER_SQL_ALCHEMY_SCHEMA
+from airflow_db_logger.config import DB_LOGGER_SQL_ALCHEMY_SCHEMA, DB_LOGGER_CREATE_INDEXES
 
 LoggerModelBase = declarative_base(
     metadata=(
@@ -11,6 +11,12 @@ LoggerModelBase = declarative_base(
         else MetaData(schema=DB_LOGGER_SQL_ALCHEMY_SCHEMA)
     )
 )
+
+
+def create_table_indexes(*args):
+    if not DB_LOGGER_CREATE_INDEXES:
+        return []
+    return args
 
 
 class TaskExecutionLogRecord(LoggerModelBase):
@@ -29,14 +35,6 @@ class TaskExecutionLogRecord(LoggerModelBase):
     execution_date = Column(UtcDateTime)
     try_number = Column(Integer)
     text = Column(Text)
-
-    __table_args__ = (
-        Index("task_execution_log_record_timestamp_idx", timestamp),
-        Index("task_execution_log_record_dag_id_idx", dag_id),
-        Index("task_execution_log_record_task_id_idx", task_id),
-        Index("task_execution_log_record_execution_date_idx", execution_date),
-        Index("task_execution_log_record_try_number_idx", try_number),
-    )
 
     def __init__(
         self,
@@ -68,11 +66,6 @@ class DagFileProcessingLogRecord(LoggerModelBase):
     dag_filename = Column(String)
     text = Column(Text)
 
-    __table_args__ = (
-        Index("dag_file_processing_log_record_timestamp_idx", timestamp),
-        Index("dag_file_processing_log_record_dag_filename_idx", dag_filename),
-    )
-
     def __init__(
         self,
         dag_filename: str,
@@ -84,3 +77,14 @@ class DagFileProcessingLogRecord(LoggerModelBase):
 
         self.dag_filename = dag_filename
         self.text = text
+
+
+if DB_LOGGER_CREATE_INDEXES:
+    Index("task_execution_log_record_timestamp_idx", TaskExecutionLogRecord.timestamp)
+    Index("task_execution_log_record_dag_id_idx", TaskExecutionLogRecord.dag_id)
+    Index("task_execution_log_record_task_id_idx", TaskExecutionLogRecord.task_id)
+    Index("task_execution_log_record_execution_date_idx", TaskExecutionLogRecord.execution_date)
+    Index("task_execution_log_record_try_number_idx", TaskExecutionLogRecord.try_number)
+
+    Index("dag_file_processing_log_record_timestamp_idx", DagFileProcessingLogRecord.timestamp)
+    Index("dag_file_processing_log_record_dag_filename_idx", DagFileProcessingLogRecord.dag_filename)

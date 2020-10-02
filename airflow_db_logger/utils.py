@@ -1,6 +1,9 @@
 import os
 import sys
 
+global IS_LOADING_CONFIG
+IS_LOADING_CONFIG = False
+
 
 def get_is_no_color():
     val = os.environ.get("NO_COLOR", "--no-color" in sys.argv)
