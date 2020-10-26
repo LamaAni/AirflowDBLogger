@@ -26,14 +26,14 @@ echo "Done"
 
 with dag:
     BashOperator(task_id="test-bash-success", bash_command=bash_command)
-    BashOperator(task_id="test-bash-fail", bash_command=bash_command + "\nexit 22")
+    # BashOperator(task_id="test-bash-fail", bash_command=bash_command + "\nexit 22")
 
     def run_python(do_success=True):
         if not do_success:
             raise Exception("Some kinda error")
 
     PythonOperator(task_id="test-python-success", python_callable=lambda: run_python(True))
-    PythonOperator(task_id="test-python-fail", python_callable=lambda: run_python(False))
+    # PythonOperator(task_id="test-python-fail", python_callable=lambda: run_python(False))
 
 
 if __name__ == "__main__":

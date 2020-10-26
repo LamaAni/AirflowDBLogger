@@ -1,12 +1,33 @@
 import logging
 import os
+import sys
+import traceback
+from typing import Dict, List, Union
+from zthreading.events import EventHandler, Event
 from airflow.utils.helpers import parse_template_string
 from airflow.models import TaskInstance
 from sqlalchemy import asc, desc
-from typing import Dict, List
 
+from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.data import TaskExecutionLogRecord, DagFileProcessingLogRecord
-from airflow_db_logger.config import DBLoggerSession, DAGS_FOLDER, DB_LOGGER_SHOW_REVERSE_ORDER
+from airflow_db_logger.config import (
+    LOG_LEVEL,
+    DBLoggerSession,
+    DAGS_FOLDER,
+    DB_LOGGER_DAGS_BASE_LOG_FOLDER,
+    DB_LOGGER_SHOW_REVERSE_ORDER,
+    TASK_LOG_FILENAME_TEMPLATE,
+    PROCESS_LOG_FILENAME_TEMPLATE,
+    DB_LOGGER_WRITE_TO_FILES,
+    DB_LOGGER_WRITE_TO_GCS_BUCKET,
+)
+
+stderr_logger = logging.getLogger(__file__)
+stderr_logger.propagate = False
+stderr_logger.handlers.clear()
+stderr_handler = logging.StreamHandler(stream=sys.__stderr__)
+stderr_handler.setFormatter(logging.Formatter(fmt="[%(asctime)s][DBLOGGER] [%(levelname)s] - %(message)s"))
+stderr_logger.addHandler(stderr_handler)
 
 
 class ExecutionLogTaskContextInfo:
@@ -18,32 +39,169 @@ class ExecutionLogTaskContextInfo:
         self.try_number = task_instance.try_number
 
 
-class DBTaskLogHandler(logging.Handler):
+class DBLoggingEventHandler(EventHandler):
+    log_event_name: str = "log"
+    flush_event_name: str = "flush"
+    close_event_name: str = "close"
+
+
+class DBLogStreamWriter(DBLoggingEventHandler):
+    _stream_writers: List["DBLogStreamWriter"] = None
+
+    def __init__(self, on_event=None) -> None:
+        super().__init__(on_event=on_event)
+
+    def emit_event(self, event: Event):
+        """Override to handle logging events.
+
+        Args:
+            event (Event): The event object
+        """
+        if event.name == self.log_event_name:
+            # assert isinstance(event.sender, DBLogHandler)
+            self.write(handler=event.sender, record=event.args[0])
+
+    def write(self, handler: "DBLogHandler", record):
+        """Abstract method. Writes a new log line.
+
+        Args:
+            handler (DBLogHandler): The log handler.
+            record (any): The log record.
+
+        Raises:
+            NotImplementedError: [description]
+        """
+        raise NotImplementedError("This method is abstract, and should be overridden")
+
+    @classmethod
+    def _initialize_global_stream_writers(cls):
+        cls._stream_writers = []
+        if DB_LOGGER_WRITE_TO_FILES is not False:
+            from airflow_db_logger.writers.local import DBLogFileWriter
+
+            cls._stream_writers.append(DBLogFileWriter())
+        if DB_LOGGER_WRITE_TO_GCS_BUCKET is not None:
+            from airflow_db_logger.writers.gcs import GCSFileWriter
+
+            cls._stream_writers.append(GCSFileWriter())
+
+    @classmethod
+    def get_global_stream_writers(cls) -> List["DBLogStreamWriter"]:
+        if cls._stream_writers is None:
+            cls._initialize_global_stream_writers()
+        return cls._stream_writers
+
+
+class DBLogHandler(logging.Handler, DBLoggingEventHandler):
+    def __init__(self, level: Union[str, int] = None):
+        logging.Handler.__init__(self, level=level or LOG_LEVEL)
+        EventHandler.__init__(self)
+        self._db_session: DBLoggerSession = None
+        for writer in DBLogStreamWriter.get_global_stream_writers():
+            self.pipe(writer)
+
+    @property
+    def has_context(self):
+        return self._db_session is not None
+
+    @property
+    def db_session(self) -> DBLoggerSession:
+        return self._db_session
+
+    def get_logfile_subpath(self):
+        """Returns the file-path associated with the log handler. By default returns 'global.log',
+        Override this method to provide handler specific filepath"""
+        return "global.log"
+
+    def set_context(self):
+        """Initialize the db log configuration.
+
+        Arguments:
+            task_instance {task instance object} -- The task instace to write for.
+        """
+        if self._db_session is None:
+            self._db_session = DBLoggerSession()
+
+    def emit_handler_event(self, name: str, *args, **kwargs):
+        """Emits an event. Any arguments sent after name, will
+        be passed to the event action.
+
+        Arguments:
+            name {str} -- The name of the event to emit.
+        """
+        EventHandler.emit(self, name, *args, **kwargs)
+
+    def emit(self, record):
+        """Emits a log record. Override this method to provide record handling.
+
+        Arguments:
+            record {any} -- The logging record.
+        """
+        self.emit_handler_event(self.log_event_name, record)
+
+    def flush(self):
+        """Waits for any unwritten logs to write to the db."""
+        self.emit_handler_event(self.flush_event_name)
+        if not self.has_context:
+            return
+        if self.db_session is not None:
+            self.db_session.flush()
+
+    def close(self):
+        self.emit_handler_event(self.close_event_name)
+        if not self.has_context:
+            return
+        """Stops and finalizes the log writing.
+        """
+        if self.db_session is not None:
+            self.db_session.close()
+            self._db_session = None
+
+
+class DBTaskLogHandler(DBLogHandler):
     """
     DB Task log handler writes and reads task logs from the logging database
     (Defaults to the airflow database, unless otherwise defined)
     """
 
-    _task_context_info: TaskInstance = None
-    _db_session: DBLoggerSession = None
+    subfolder_path: str = "tasks"
 
-    def __init__(self):
-        super().__init__()
-        self._task_context_info = None
-        self._db_session = None
+    def __init__(self, level: Union[str, int] = None):
+        super().__init__(level=level)
+        self.filename_template, self.filename_jinja_template = parse_template_string(TASK_LOG_FILENAME_TEMPLATE)
+        self._task_context_info: ExecutionLogTaskContextInfo = None
+        self._task_instance: TaskInstance = None
+        self._logfile_subpath: str = None
 
     @property
-    def task_context_info(self):
+    def task_context_info(self) -> ExecutionLogTaskContextInfo:
         assert self._task_context_info is not None, "Task instance was not defined while attempting to write task log"
         return self._task_context_info
 
     @property
-    def has_context(self):
+    def has_task_context(self):
         return self._task_context_info is not None
 
-    @property
-    def db_session(self) -> DBLoggerSession:
-        return self._db_session
+    def get_logfile_subpath(self):
+        """Returns the task log filename"""
+        return self._logfile_subpath
+
+    def _render_logfile_subpath(self):
+        """Returns the task log sub filepath"""
+        if self.filename_jinja_template:
+            # render as jinja
+            jinja_context = self._task_instance.get_template_context()
+            jinja_context["ti"] = self.task_context_info
+            jinja_context["try_number"] = self.task_context_info.try_number
+            return self.filename_jinja_template.render(**jinja_context)
+        else:
+            # render direct
+            return self.filename_template.format(
+                dag_id=self.task_context_info.dag_id,
+                task_id=self.task_context_info.task_id,
+                execution_date=self.task_context_info.execution_date.isoformat(),
+                try_number=self.task_context_info.try_number,
+            )
 
     def set_context(self, task_instance):
         """Initialize the db log configuration.
@@ -53,10 +211,12 @@ class DBTaskLogHandler(logging.Handler):
         """
 
         try:
+            self._task_instance = task_instance
             self._task_context_info = ExecutionLogTaskContextInfo(task_instance)
-            self._db_session = DBLoggerSession()
+            self._logfile_subpath = os.path.join(self.subfolder_path, self._render_logfile_subpath())
+            super().set_context()
         except Exception as err:
-            logging.error(err)
+            stderr_logger.error(err)
 
     def emit(self, record):
         """Emits a log record.
@@ -64,35 +224,25 @@ class DBTaskLogHandler(logging.Handler):
         Arguments:
             record {any} -- The logging record.
         """
-        if not self.has_context:
+        if not self.has_task_context:
             return
 
-        db_record = TaskExecutionLogRecord(
-            self.task_context_info.dag_id,
-            self.task_context_info.task_id,
-            self.task_context_info.execution_date,
-            self.task_context_info.try_number,
-            self.format(record),
-        )
+        if self.has_context:
+            try:
+                db_record = TaskExecutionLogRecord(
+                    self.task_context_info.dag_id,
+                    self.task_context_info.task_id,
+                    self.task_context_info.execution_date,
+                    self.task_context_info.try_number,
+                    self.format(record),
+                )
 
-        self.db_session.add(db_record)
-        self.db_session.commit()
+                self.db_session.add(db_record)
+                self.db_session.commit()
+            except Exception:
+                stderr_logger.error(traceback.format_exc())
 
-    def flush(self):
-        """Waits for any unwritten logs to write to the db."""
-        if not self.has_context:
-            return
-        if self.db_session is not None:
-            self.db_session.flush()
-
-    def close(self):
-        if not self.has_context:
-            return
-        """Stops and finalizes the log writing.
-        """
-        if self.db_session is not None:
-            self.db_session.close()
-            self._db_session = None
+        super().emit(self.format(record))
 
     def read(
         self,
@@ -178,46 +328,41 @@ class DBTaskLogHandler(logging.Handler):
             return logs, metadata_array
 
         except Exception as err:
-            logging.error("Failed to read log from db", err)
-            raise err
+            stderr_logger.error(err)
         finally:
             if db_session:
                 db_session.close()
 
 
-class DBProcessLogHandler(logging.Handler):
+class DBProcessLogHandler(DBLogHandler):
     """
     FileProcessorHandler is a python log handler that handles
     dag processor logs. It creates and delegates log handling
     to a database
     """
 
-    _dag_filename: str = None
-    _db_session: DBLoggerSession = None
+    dags_subfolder_path: str = "dags"
+    global_log_file: str = "global.log"
+    subfolder_path: str = "process"
 
-    def __init__(self, filename_template):
+    def __init__(self, level: Union[str, int] = None):
         """
         :param filename_template: template filename string
         """
 
-        super().__init__()
+        super().__init__(level=level)
 
-        self.dag_dir = os.path.expanduser(DAGS_FOLDER)
-        self.filename_template, self.filename_jinja_template = parse_template_string(filename_template)
-
-        self._dag_filename = None
-        self._db_session = None
+        self.dags_base_log_folder = DB_LOGGER_DAGS_BASE_LOG_FOLDER
+        self._log_filepath: str = os.path.join("process", "global.log")
+        self.filename_template, self.filename_jinja_template = parse_template_string(PROCESS_LOG_FILENAME_TEMPLATE)
 
     @property
-    def has_context(self):
-        return self._dag_filename is not None
+    def dag_relative_filepath(self) -> str:
+        """Returns the relative path of the dag filename, to the dags directory."""
+        return self._log_filepath
 
-    @property
-    def db_session(self) -> DBLoggerSession:
-        return self._db_session
-
-    def _render_filename(self, filename):
-        """Renders a display filename for the specific dag.
+    def _render_relative_dag_filepath(self, dag_filepath: str):
+        """Renders a dag log file relative to the dag filepath.
 
         Arguments:
             filename {str} -- The original filename
@@ -225,27 +370,39 @@ class DBProcessLogHandler(logging.Handler):
         Returns:
             str -- The display filename.
         """
-        filename = os.path.relpath(filename, self.dag_dir)
+        dag_relative_filepath = os.path.relpath(dag_filepath, DAGS_FOLDER)
         ctx = dict()
-        ctx["filename"] = filename
+        ctx["filename"] = dag_relative_filepath
 
         if self.filename_jinja_template:
             return self.filename_jinja_template.render(**ctx)
 
         return self.filename_template.format(filename=ctx["filename"])
 
-    def set_context(self, dag_filename):
-        """Initialize the db log configuration.
+    def set_context(self, filepath=None):
+        """Initialize the dag log configuration.
 
         Arguments:
-            dag_filename {str} -- The dag filename context
+            dag_filepath {str} -- The path to the dag file.
         """
 
         try:
-            self._dag_filename = self._render_filename(dag_filename)
+            self._log_filepath = (
+                os.path.join(self.subfolder_path, self.global_log_file)
+                if filepath is None
+                else os.path.join(
+                    self.subfolder_path, self.dags_subfolder_path, self._render_relative_dag_filepath(filepath)
+                )
+            )
             self._db_session = DBLoggerSession()
         except Exception as err:
-            logging.error(err)
+            stderr_logger.error(err)
+
+    def get_logfile_subpath(self):
+        assert self._log_filepath, DBLoggerException(
+            "Cannot write dag logs to file, dag_relative_filepath is empty. Context not set."
+        )
+        return self._log_filepath
 
     def emit(self, record):
         """Emits a log record.
@@ -254,26 +411,15 @@ class DBProcessLogHandler(logging.Handler):
             record {any} -- The logging record.
         """
         if not self.has_context:
-            return
+            self.set_context()
 
-        db_record = DagFileProcessingLogRecord(self._dag_filename, self.format(record))
+        db_record_message = self.format(record)
+        try:
+            db_record = DagFileProcessingLogRecord(self._log_filepath, db_record_message)
+            self.db_session.add(db_record)
+            self.db_session.commit()
+        except Exception:
+            stderr_logger.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
+            stderr_logger.error(traceback.format_exc())
 
-        self.db_session.add(db_record)
-        self.db_session.commit()
-
-    def flush(self):
-        """Waits for any unwritten logs to write to the db."""
-        if not self.has_context:
-            return
-        if self.db_session is not None:
-            self.db_session.flush()
-
-    def close(self):
-        if not self.has_context:
-            return
-
-        """Stops and finalizes the log writing.
-        """
-        if self.db_session is not None:
-            self.db_session.close()
-            self._db_session = None
+        super().emit(db_record_message)

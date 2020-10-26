@@ -23,15 +23,42 @@ FILENAME_TEMPLATE = get("core", "LOG_FILENAME_TEMPLATE")
 # Loading sql parameters
 SQL_ALCHEMY_CONN = get("core", "sql_alchemy_conn", no_empty=True)
 DAGS_FOLDER = os.path.expanduser(conf.get("core", "dags_folder"))
+BASE_LOG_FOLDER = os.path.expanduser(conf.get("core", "base_log_folder"))
 SQL_ALCHEMY_SCHEMA = get("core", "sql_alchemy_schema")
 COLORED_CONSOLE_LOG = conf.getboolean("core", "colored_console_log")
+TASK_LOG_FILENAME_TEMPLATE = (
+    conf.get(
+        "core",
+        "LOG_FILENAME_TEMPLATE",
+        fallback="{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log",
+    )
+    .replace("{{{{", "{{")
+    .replace("}}}}", "}}")
+)
+PROCESS_LOG_FILENAME_TEMPLATE = (
+    conf.get(
+        "core",
+        "LOG_PROCESSOR_FILENAME_TEMPLATE",
+        fallback="{{ filename }}.log",
+    )
+    .replace("{{{{", "{{")
+    .replace("}}}}", "}}")
+)
 
 
+DB_LOGGER_DAGS_BASE_LOG_FOLDER = f"{BASE_LOG_FOLDER}/dags"
 DB_LOGGER_SQL_ALCHEMY_SCHEMA = get("db_logger", "sql_alchemy_schema", fallback=SQL_ALCHEMY_SCHEMA)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION = get("db_logger", "sql_alchemy_conn", fallback=SQL_ALCHEMY_CONN, no_empty=True)
 DB_LOGGER_SHOW_REVERSE_ORDER = conf.getboolean("db_logger", "show_reverse", fallback=False)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION_ARGS = get("db_logger", "sql_alchemy_conn_args", fallback=None)
 DB_LOGGER_CREATE_INDEXES = conf.getboolean("db_logger", "create_index", fallback=True)
+
+DB_LOGGER_GOOGLE_APP_CREDS_PATH = conf.get("db_logger", "google_application_credentials", fallback=None)
+# A bucket path, requires google-cloud-storage to be installed.
+DB_LOGGER_WRITE_TO_GCS_BUCKET = conf.get("db_logger", "write_to_gcs_bucket", fallback=None)
+# True or path
+DB_LOGGER_WRITE_TO_FILES = conf.getboolean("db_logger", "write_to_files", fallback=True)
+
 
 # Setting the default logger log level
 logging.basicConfig(level=LOG_LEVEL)
