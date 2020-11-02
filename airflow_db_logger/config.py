@@ -29,13 +29,16 @@ def get(
     if issubclass(otype, Enum):
         allow_empty = False
 
-    if val is None or (not allow_empty and len(val.strip()) == 0):
+    value_is_empty = val is None or (isinstance(val, str) and len(val.strip()) == 0)
+
+    if not allow_empty and value_is_empty:
         assert default is not None, f"Airflow configuration {collection}.{key} not found, and no default value"
         return default
 
+    if val is None:
+        return None
     if otype == bool:
         return val.lower() == "true"
-
     elif issubclass(otype, Enum):
         val = val.strip()
         return otype(val.strip())
