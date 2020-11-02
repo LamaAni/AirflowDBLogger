@@ -33,7 +33,6 @@ setup(
     install_requires=[
         "sqlalchemy>=0.23.1",
         "zthreading>=0.1.15",
-        "google-cloud-storage>=1.31.2",
     ],
     python_requires=">=3.6",
     include_package_data=True,
