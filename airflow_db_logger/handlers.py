@@ -227,7 +227,7 @@ class DBProcessLogHandler(logging.Handler):
             str -- The display filename.
         """
         filename = os.path.relpath(filename, self.dag_dir)
-        return filename
+        return f"{filename}.log"
         # ctx = dict()
         # ctx["filename"] = filename
 
