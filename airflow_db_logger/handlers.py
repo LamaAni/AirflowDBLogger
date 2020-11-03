@@ -1,4 +1,5 @@
 import logging
+import traceback
 import os
 from airflow.utils.helpers import parse_template_string
 from airflow.models import TaskInstance
@@ -244,8 +245,10 @@ class DBProcessLogHandler(logging.Handler):
         try:
             self._dag_filename = self._render_filename(dag_filename)
             self._db_session = DBLoggerSession()
-        except Exception as err:
-            logging.error(err)
+        except Exception:
+            logging.error("Failed to initialize process logger contexts")
+            traceback.print_exc()
+            # logging.error(err)
 
     def emit(self, record):
         """Emits a log record.
