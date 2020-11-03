@@ -1,14 +1,26 @@
 import sys
 import os
+import warnings
 import logging
 from typing import Type
 from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
-from airflow.configuration import conf, AirflowConfigException
+from airflow.configuration import conf, AirflowConfigException, log
 
 AIRFLOW_CONFIG_SECTION_NAME = "db_logger"
+
+
+def conf_get_no_warnings_no_errors(*args, **kwargs):
+    old_level = log.level
+    log.level = logging.ERROR
+    try:
+        val = conf.get(*args, **kwargs)
+    except AirflowConfigException:
+        val = None
+    log.level = old_level
+    return val
 
 
 def get(
@@ -20,11 +32,7 @@ def get(
 ):
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
-    val = None
-    try:
-        val = conf.get(AIRFLOW_CONFIG_SECTION_NAME, key)
-    except AirflowConfigException as ex:
-        logging.debug(ex)
+    val = conf_get_no_warnings_no_errors(AIRFLOW_CONFIG_SECTION_NAME, key)
 
     if issubclass(otype, Enum):
         allow_empty = False
@@ -73,8 +81,8 @@ DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", "utf-8")
 # Setting the default logger log level
 logging.basicConfig(level=LOG_LEVEL)
 
-logging.info(f"DBLogger is connecting to: {DB_LOGGER_SQL_ALCHEMY_CONNECTION}/{DB_LOGGER_SQL_ALCHEMY_SCHEMA}")
-logging.info(f"DBLogger indexes: {DB_LOGGER_CREATE_INDEXES}")
+logging.debug(f"DBLogger is connecting to: {DB_LOGGER_SQL_ALCHEMY_CONNECTION}/{DB_LOGGER_SQL_ALCHEMY_SCHEMA}")
+logging.debug(f"DBLogger indexes: {DB_LOGGER_CREATE_INDEXES}")
 
 
 def create_db_logger_sqlalchemy_engine():
