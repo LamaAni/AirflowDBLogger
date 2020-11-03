@@ -227,13 +227,14 @@ class DBProcessLogHandler(logging.Handler):
             str -- The display filename.
         """
         filename = os.path.relpath(filename, self.dag_dir)
-        ctx = dict()
-        ctx["filename"] = filename
+        return filename
+        # ctx = dict()
+        # ctx["filename"] = filename
 
-        if self.filename_jinja_template:
-            return self.filename_jinja_template.render(**ctx)
+        # if self.filename_jinja_template:
+        #     return self.filename_jinja_template.render(**ctx)
 
-        return self.filename_template.format(filename=ctx["filename"])
+        # return self.filename_template.format(filename=ctx["filename"])
 
     def set_context(self, dag_filename):
         """Initialize the db log configuration.
