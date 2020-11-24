@@ -9,11 +9,13 @@ from airflow.models import TaskInstance
 from sqlalchemy import asc, desc
 
 from airflow_db_logger.exceptions import DBLoggerException
+from airflow_db_logger.utils import get_calling_frame_objects_by_type
 from airflow_db_logger.data import TaskExecutionLogRecord, DagFileProcessingLogRecord
 from airflow_db_logger.config import (
     LOG_LEVEL,
     DBLoggerSession,
     DAGS_FOLDER,
+    IS_RUNNING_DEBUG_EXECUTOR,
     DB_LOGGER_SHOW_REVERSE_ORDER,
     TASK_LOG_FILENAME_TEMPLATE,
     PROCESS_LOG_FILENAME_TEMPLATE,
@@ -229,6 +231,13 @@ class DBTaskLogHandler(DBLogHandler):
         Arguments:
             record {any} -- The logging record.
         """
+
+        # A fix to allow the debug executor to run also to the database.
+        if IS_RUNNING_DEBUG_EXECUTOR and not self.has_task_context:
+            ti: TaskInstance = get_calling_frame_objects_by_type(TaskInstance, first_only=True)
+            if ti is not None:
+                self.set_context(task_instance=ti)
+
         if self.has_task_context and self.has_context:
             try:
                 db_record = TaskExecutionLogRecord(
