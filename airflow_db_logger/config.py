@@ -1,6 +1,5 @@
 import sys
 import os
-import warnings
 import logging
 from typing import Type
 from enum import Enum
@@ -156,6 +155,7 @@ def create_db_logger_sqlalchemy_engine():
 
 # The main db session. Used in all logging.
 DB_LOGGER_ENGINE = create_db_logger_sqlalchemy_engine()
+
 DBLoggerSession = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=DB_LOGGER_ENGINE, expire_on_commit=False)
 )
