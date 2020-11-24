@@ -15,9 +15,9 @@ def create_clean_old_logs_task(
     dag: airflow.DAG = None,
     task_id: str = None,
 ):
-    task_id = task_id or "clean." + "-".join([f"{dt}" for dt in [before, after] if dt is not None])
     dag: airflow.DAG = dag or settings.CONTEXT_MANAGER_DAG
     assert isinstance(dag, airflow.DAG), ValueError("dag is none and not using 'with dag as ..' pattern")
+    assert task_id and isinstance(task_id, str), ValueError("Task id must be a non empty string")
 
     after = after or datetime(year=2000, month=1, day=1)
 
