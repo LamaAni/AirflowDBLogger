@@ -10,10 +10,10 @@ from airflow_db_logger.data import TaskExecutionLogRecord, DagFileProcessingLogR
 
 
 def create_clean_old_logs_task(
+    task_id: str,
     before: datetime,
     after: datetime = None,
     dag: airflow.DAG = None,
-    task_id: str = None,
 ):
     dag: airflow.DAG = dag or settings.CONTEXT_MANAGER_DAG
     assert isinstance(dag, airflow.DAG), ValueError("dag is none and not using 'with dag as ..' pattern")
