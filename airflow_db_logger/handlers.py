@@ -1,4 +1,5 @@
 import logging
+import traceback
 import os
 import sys
 import traceback
@@ -364,7 +365,7 @@ class DBProcessLogHandler(DBLogHandler):
         """Returns the relative path of the dag filename, to the dags directory."""
         return self._log_filepath
 
-    def _render_relative_dag_filepath(self, dag_filepath: str):
+    def _render_relative_dag_filepath(self, filename: str):
         """Renders a dag log file relative to the dag filepath.
 
         Arguments:
@@ -373,14 +374,15 @@ class DBProcessLogHandler(DBLogHandler):
         Returns:
             str -- The display filename.
         """
-        dag_relative_filepath = os.path.relpath(dag_filepath, DAGS_FOLDER)
-        ctx = dict()
-        ctx["filename"] = dag_relative_filepath
+        filename = os.path.relpath(filename, self.dag_dir)
+        return f"{filename}.log"
+        # ctx = dict()
+        # ctx["filename"] = filename
 
-        if self.filename_jinja_template:
-            return self.filename_jinja_template.render(**ctx)
+        # if self.filename_jinja_template:
+        #     return self.filename_jinja_template.render(**ctx)
 
-        return self.filename_template.format(filename=ctx["filename"])
+        # return self.filename_template.format(filename=ctx["filename"])
 
     def set_context(self, filepath=None):
         """Initialize the dag log configuration.
@@ -398,8 +400,10 @@ class DBProcessLogHandler(DBLogHandler):
                 )
             )
             self._db_session = DBLoggerSession()
-        except Exception as err:
-            stderr_logger.error(err)
+        except Exception:
+            logging.error("Failed to initialize process logger contexts")
+            traceback.print_exc()
+            # logging.error(err)
 
     def get_logfile_subpath(self):
         assert self._log_filepath, DBLoggerException(
