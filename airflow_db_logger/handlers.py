@@ -2,7 +2,6 @@ import logging
 import traceback
 import os
 import sys
-import traceback
 from typing import Dict, List, Union
 from zthreading.events import EventHandler, Event
 from airflow.utils.helpers import parse_template_string
@@ -15,7 +14,6 @@ from airflow_db_logger.config import (
     LOG_LEVEL,
     DBLoggerSession,
     DAGS_FOLDER,
-    DB_LOGGER_DAGS_BASE_LOG_FOLDER,
     DB_LOGGER_SHOW_REVERSE_ORDER,
     TASK_LOG_FILENAME_TEMPLATE,
     PROCESS_LOG_FILENAME_TEMPLATE,
@@ -355,8 +353,7 @@ class DBProcessLogHandler(DBLogHandler):
         """
 
         super().__init__(level=level)
-
-        self.dags_base_log_folder = DB_LOGGER_DAGS_BASE_LOG_FOLDER
+        self.dag_dir: str = os.path.expanduser(DAGS_FOLDER)
         self._log_filepath: str = os.path.join("process", "global.log")
         self.filename_template, self.filename_jinja_template = parse_template_string(PROCESS_LOG_FILENAME_TEMPLATE)
 

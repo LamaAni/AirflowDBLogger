@@ -1,9 +1,8 @@
-from utils import default_args
-from datetime import timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.utils.log.logging_mixin import LoggingMixin
+
+default_args = {"owner": "tester", "start_date": "1/1/2020", "retries": 0}
 
 dag = DAG(
     "db-log-tester",

@@ -26,12 +26,12 @@ def get(
     key: str,
     default=None,
     otype: Type = None,
-    collection=None,
     allow_empty: bool = False,
+    collection: str = None,
 ):
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
-    val = conf_get_no_warnings_no_errors(AIRFLOW_CONFIG_SECTION_NAME, key)
+    val = conf_get_no_warnings_no_errors(collection, key)
 
     if issubclass(otype, Enum):
         allow_empty = False
@@ -54,32 +54,32 @@ def get(
 
 
 # Loading airflow parameters
-LOG_LEVEL = get("core", "logging_level").upper()
-FILENAME_TEMPLATE = get("core", "LOG_FILENAME_TEMPLATE")
-AIRFLOW_EXECUTOR = get("core", "executor")
+LOG_LEVEL = get(collection="core", key="logging_level").upper()
+FILENAME_TEMPLATE = get(collection="core", key="LOG_FILENAME_TEMPLATE")
+AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
-IS_USING_COLORED_CONSOLE = get("core", "colored_console_log").lower() == "true"
+IS_USING_COLORED_CONSOLE = get(collection="core", key="colored_console_log").lower() == "true"
 
 # Loading sql parameters
-SQL_ALCHEMY_CONN = conf.get("core", "sql_alchemy_conn", no_empty=True)
-DAGS_FOLDER = os.path.expanduser(conf.get("core", "dags_folder"))
-BASE_LOG_FOLDER = os.path.expanduser(conf.get("core", "base_log_folder"))
-SQL_ALCHEMY_SCHEMA = get("core", "sql_alchemy_schema")
-COLORED_CONSOLE_LOG = conf.getboolean("core", "colored_console_log")
+SQL_ALCHEMY_CONN = get(collection="core", key="sql_alchemy_conn", allow_empty=False)
+DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
+BASE_LOG_FOLDER = os.path.expanduser(get(collection="core", key="base_log_folder"))
+SQL_ALCHEMY_SCHEMA = get(collection="core", key="sql_alchemy_schema", allow_empty=True)
+COLORED_CONSOLE_LOG = get(collection="core", key="colored_console_log")
 TASK_LOG_FILENAME_TEMPLATE = (
-    conf.get(
-        "core",
-        "LOG_FILENAME_TEMPLATE",
-        fallback="{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log",
+    get(
+        collection="core",
+        key="LOG_FILENAME_TEMPLATE",
+        default="{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log",
     )
     .replace("{{{{", "{{")
     .replace("}}}}", "}}")
 )
 PROCESS_LOG_FILENAME_TEMPLATE = (
-    conf.get(
-        "core",
-        "LOG_PROCESSOR_FILENAME_TEMPLATE",
-        fallback="{{ filename }}.log",
+    get(
+        collection="core",
+        key="log_processor_filename_template",
+        default="{{ filename }}.log",
     )
     .replace("{{{{", "{{")
     .replace("}}}}", "}}")
@@ -99,13 +99,13 @@ DB_LOGGER_SQL_ALCHEMY_POOL_RECYCLE = get("sql_alchemy_pool_recycle", 1800)
 DB_LOGGER_SQL_ALCHEMY_POOL_PRE_PING = get("sql_alchemy_pool_pre_ping", True)
 DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", "utf-8")
 
-DB_LOGGER_GOOGLE_APP_CREDS_PATH = conf.get("db_logger", "google_application_credentials", fallback=None)
+DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=None, allow_empty=True, otype=str)
 # A bucket path, requires google-cloud-storage to be installed.
-DB_LOGGER_WRITE_TO_GCS_BUCKET = conf.get("db_logger", "write_to_gcs_bucket", fallback=None)
+DB_LOGGER_WRITE_TO_GCS_BUCKET = get("write_to_gcs_bucket", default=None, allow_empty=True, otype=str)
 # True or path
-DB_LOGGER_WRITE_TO_FILES = conf.getboolean("db_logger", "write_to_files", fallback=False)
+DB_LOGGER_WRITE_TO_FILES = get("write_to_files", default=False)
 # True or path
-DB_LOGGER_WRITE_TO_SHELL = conf.getboolean("db_logger", "write_to_shell", fallback=IS_RUNNING_DEBUG_EXECUTOR)
+DB_LOGGER_WRITE_TO_SHELL = get("write_to_shell", default=IS_RUNNING_DEBUG_EXECUTOR)
 
 DB_LOGGER_CONSOLE_FORMATTER = "airflow_coloured" if IS_USING_COLORED_CONSOLE else "airflow"
 DB_LOGGER_TASK_FORMATTER = "airflow_coloured" if IS_RUNNING_DEBUG_EXECUTOR and IS_USING_COLORED_CONSOLE else "airflow"
