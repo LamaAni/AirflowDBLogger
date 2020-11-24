@@ -20,6 +20,7 @@ from airflow_db_logger.config import (
     PROCESS_LOG_FILENAME_TEMPLATE,
     DB_LOGGER_WRITE_TO_FILES,
     DB_LOGGER_WRITE_TO_GCS_BUCKET,
+    DB_LOGGER_WRITE_TO_SHELL,
 )
 
 stderr_logger = logging.getLogger(__file__)
@@ -61,7 +62,7 @@ class DBLogStreamWriter(DBLoggingEventHandler):
             # assert isinstance(event.sender, DBLogHandler)
             self.write(handler=event.sender, record=event.args[0])
 
-    def write(self, handler: "DBLogHandler", record):
+    def write(self, handler: "DBLogHandler", record: logging.LogRecord):
         """Abstract method. Writes a new log line.
 
         Args:
@@ -84,6 +85,11 @@ class DBLogStreamWriter(DBLoggingEventHandler):
             from airflow_db_logger.writers.gcs import GCSFileWriter
 
             cls._stream_writers.append(GCSFileWriter())
+
+        if DB_LOGGER_WRITE_TO_SHELL is True:
+            from airflow_db_logger.writers.shell import DBLogShellWriter
+
+            cls._stream_writers.append(DBLogShellWriter())
 
     @classmethod
     def get_global_stream_writers(cls) -> List["DBLogStreamWriter"]:
@@ -131,7 +137,7 @@ class DBLogHandler(logging.Handler, DBLoggingEventHandler):
         """
         EventHandler.emit(self, name, *args, **kwargs)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """Emits a log record. Override this method to provide record handling.
 
         Arguments:
@@ -218,16 +224,13 @@ class DBTaskLogHandler(DBLogHandler):
         except Exception as err:
             stderr_logger.error(err)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """Emits a log record.
 
         Arguments:
             record {any} -- The logging record.
         """
-        if not self.has_task_context:
-            return
-
-        if self.has_context:
+        if self.has_task_context and self.has_context:
             try:
                 db_record = TaskExecutionLogRecord(
                     self.task_context_info.dag_id,
@@ -242,7 +245,7 @@ class DBTaskLogHandler(DBLogHandler):
             except Exception:
                 stderr_logger.error(traceback.format_exc())
 
-        super().emit(self.format(record))
+        super().emit(record)
 
     def read(
         self,
@@ -404,7 +407,7 @@ class DBProcessLogHandler(DBLogHandler):
         )
         return self._log_filepath
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """Emits a log record.
 
         Arguments:
@@ -422,4 +425,4 @@ class DBProcessLogHandler(DBLogHandler):
             stderr_logger.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
             stderr_logger.error(traceback.format_exc())
 
-        super().emit(db_record_message)
+        super().emit(record)

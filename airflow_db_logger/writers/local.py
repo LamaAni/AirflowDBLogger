@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Dict
 from weakref import WeakValueDictionary
 from zthreading.decorators import collect_delayed_calls_async
@@ -36,7 +37,7 @@ class DBLogFileCollectionWriter:
             stderr_logger.error(err)
 
     def write_async_error(self, err: Exception):
-        stderr_logger.log(err)
+        stderr_logger.error(err)
 
 
 class DBLogFileWriter(DBLogStreamWriter):
@@ -53,10 +54,14 @@ class DBLogFileWriter(DBLogStreamWriter):
         else:
             return self._pending_loggers[filename]
 
-    def write(self, handler: DBLogHandler, record):
+    def write(self, handler: DBLogHandler, record: logging.LogRecord):
+        # Only applies when using context execution.
+        if not handler.has_context:
+            return
+
         logfile = handler.get_logfile_subpath()
         assert isinstance(logfile, str), DBLoggerException(
             f"Invalid logfile when writing log from {type(handler)}: {logfile}"
         )
         filename = os.path.join(BASE_LOG_FOLDER, handler.get_logfile_subpath())
-        self.get_file_collection_writer(filename=filename).write(record)
+        self.get_file_collection_writer(filename=filename).write(handler.format(record))

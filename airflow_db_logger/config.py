@@ -19,6 +19,9 @@ def get(col, key, fallback=None, no_empty=False):
 # Loading airflow parameters
 LOG_LEVEL = get("core", "logging_level").upper()
 FILENAME_TEMPLATE = get("core", "LOG_FILENAME_TEMPLATE")
+AIRFLOW_EXECUTOR = get("core", "executor")
+IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
+IS_USING_COLORED_CONSOLE = get("core", "colored_console_log").lower() == "true"
 
 # Loading sql parameters
 SQL_ALCHEMY_CONN = get("core", "sql_alchemy_conn", no_empty=True)
@@ -57,7 +60,12 @@ DB_LOGGER_GOOGLE_APP_CREDS_PATH = conf.get("db_logger", "google_application_cred
 # A bucket path, requires google-cloud-storage to be installed.
 DB_LOGGER_WRITE_TO_GCS_BUCKET = conf.get("db_logger", "write_to_gcs_bucket", fallback=None)
 # True or path
-DB_LOGGER_WRITE_TO_FILES = conf.getboolean("db_logger", "write_to_files", fallback=True)
+DB_LOGGER_WRITE_TO_FILES = conf.getboolean("db_logger", "write_to_files", fallback=False)
+# True or path
+DB_LOGGER_WRITE_TO_SHELL = conf.getboolean("db_logger", "write_to_shell", fallback=IS_RUNNING_DEBUG_EXECUTOR)
+
+DB_LOGGER_CONSOLE_FORMATTER = "airflow_coloured" if IS_USING_COLORED_CONSOLE else "airflow"
+DB_LOGGER_TASK_FORMATTER = "airflow_coloured" if IS_RUNNING_DEBUG_EXECUTOR and IS_USING_COLORED_CONSOLE else "airflow"
 
 
 # Setting the default logger log level
