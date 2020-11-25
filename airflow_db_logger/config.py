@@ -102,6 +102,8 @@ DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", "utf-8")
 DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=None, allow_empty=True, otype=str)
 # A bucket path, requires google-cloud-storage to be installed.
 DB_LOGGER_WRITE_TO_GCS_BUCKET = get("write_to_gcs_bucket", default=None, allow_empty=True, otype=str)
+DB_LOGGER_WRITE_TO_GCS_PROJECT_ID = get("write_to_gcs_project_id", default=None, allow_empty=True, otype=str)
+DB_LOGGER_WRITE_TO_GCS_MULTI_FILE_LOG = get("write_to_gcs_multi_file_log", default=False)
 # True or path
 DB_LOGGER_WRITE_TO_FILES = get("write_to_files", default=False)
 # True or path
