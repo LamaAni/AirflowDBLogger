@@ -1,0 +1,2 @@
+class DBLoggerException(Exception):
+    pass
