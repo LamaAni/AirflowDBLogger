@@ -27,7 +27,7 @@ setup(
     author="Zav Shotan",
     author_email="",
     url="https://github.com/LamaAni/AirflowDBLogger",
-    packages=["airflow_db_logger"],
+    packages=["airflow_db_logger", "airflow_db_logger/writers"],
     platforms="any",
     license="docs/LICENSE",
     install_requires=[
