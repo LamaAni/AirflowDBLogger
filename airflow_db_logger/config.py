@@ -219,5 +219,10 @@ def init_logger(reset=False):
 
 def check_cli_for_init_db():
     """Returns true if the cli command is for initializing the database."""
+    # Old system
     if "initdb" in sys.argv or "upgradedb" in sys.argv or "resetdb" in sys.argv:
         init_logger("resetdb" in sys.argv)
+
+    # New system
+    if "db" in sys.argv and ("reset" in sys.argv or "init" in sys.argv or "upgrade" in sys.argv):
+        init_logger("reset" in sys.argv)
