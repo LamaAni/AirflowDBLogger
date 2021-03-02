@@ -318,7 +318,6 @@ class DBTaskLogHandler(DBLogHandler):
 
             # pull the records
             log_records: List[TaskExecutionLogRecord] = [r for r in log_records]
-            # log_records.sort(key=lambda r: r.timestamp.timestamp())
 
             for log_record in log_records:
                 try_number = int(log_record.try_number)
@@ -336,10 +335,15 @@ class DBTaskLogHandler(DBLogHandler):
                 logs.append(logs_by_try_number[try_number])
                 metadata_array.append({"end_of_log": True})
 
+            raise Exception("Dummy exception, db logger test error")
+
             return logs, metadata_array
 
-        except Exception as err:
-            stderr_logger.error(err)
+        except Exception:
+            stderr_logger.error(traceback.format_exc())
+            return [f"An error occurred while connecting to the database:\n" + f"{traceback.format_exc()}"], [
+                {"end_of_log": True}
+            ]
         finally:
             if db_session:
                 db_session.close()
@@ -382,13 +386,6 @@ class DBProcessLogHandler(DBLogHandler):
         """
         filename = os.path.relpath(filename, self.dag_dir)
         return f"{filename}.log"
-        # ctx = dict()
-        # ctx["filename"] = filename
-
-        # if self.filename_jinja_template:
-        #     return self.filename_jinja_template.render(**ctx)
-
-        # return self.filename_template.format(filename=ctx["filename"])
 
     def set_context(self, filepath=None):
         """Initialize the dag log configuration.
