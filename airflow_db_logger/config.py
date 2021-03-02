@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import warnings
 from typing import Type
 from enum import Enum
 from sqlalchemy import create_engine
@@ -205,16 +206,16 @@ def init_logger(reset=False):
     """
     from airflow_db_logger.data import LoggerModelBase
 
-    logging.info(f"Using {DB_LOGGER_SQL_ALCHEMY_CONNECTION}")
+    log.info(f"AirflowDBLogger is using: {DB_LOGGER_SQL_ALCHEMY_CONNECTION}")
     if reset:
         # NOTE: There is no promp for logs, when you reset, everything will reset always.
-        logging.info("Resetting db_logger tables...")
+        log.info("Resetting db_logger tables...")
         LoggerModelBase.metadata.drop_all(DB_LOGGER_ENGINE)
     else:
-        logging.info("Initialzing db_logger tables...")
+        log.info("Initialzing db_logger tables...")
     LoggerModelBase.metadata.create_all(DB_LOGGER_ENGINE)
 
-    logging.info("db_logger tables initialized.")
+    log.info("AirflowDBLogger tables initialized.")
 
 
 def check_cli_for_init_db():
