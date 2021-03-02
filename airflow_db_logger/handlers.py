@@ -335,8 +335,6 @@ class DBTaskLogHandler(DBLogHandler):
                 logs.append(logs_by_try_number[try_number])
                 metadata_array.append({"end_of_log": True})
 
-            raise Exception("Dummy exception, db logger test error")
-
             return logs, metadata_array
 
         except Exception:
