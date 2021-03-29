@@ -15,6 +15,7 @@ from airflow_db_logger.config import (  # noqa
     check_cli_for_init_db,  # noqa: E402
     DB_LOGGER_TASK_FORMATTER,  # noqa: E402
     DB_LOGGER_CONSOLE_FORMATTER,  # noqa: E402
+    DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB,  # noqa: E402
 )
 
 
@@ -27,6 +28,18 @@ def update_config_from_defaults():
     # Remove any other loads.
     consts.IS_LOADING_CONFIG = True
 
+    processor_handler_config = {
+        "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+        "formatter": DB_LOGGER_CONSOLE_FORMATTER,
+        "stream": "sys.stdout",
+    }
+
+    if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
+        processor_handler_config = {
+            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "formatter": DB_LOGGER_CONSOLE_FORMATTER,
+        }
+
     LOGGING_CONFIG.update(deepcopy(DEFAULT_LOGGING_CONFIG))
     LOGGING_CONFIG["handlers"] = {
         "console": {
@@ -38,10 +51,7 @@ def update_config_from_defaults():
             "class": "airflow_db_logger.handlers.DBTaskLogHandler",
             "formatter": DB_LOGGER_TASK_FORMATTER,
         },
-        "processor": {
-            "class": "airflow_db_logger.handlers.DBProcessLogHandler",
-            "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-        },
+        "processor": processor_handler_config,
     }
 
     # Checking for database initialization

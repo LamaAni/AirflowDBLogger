@@ -92,6 +92,7 @@ DB_LOGGER_SQL_ALCHEMY_CONNECTION = get("sql_alchemy_conn", SQL_ALCHEMY_CONN)
 DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION_ARGS = get("sql_alchemy_conn_args", None, allow_empty=True)
 DB_LOGGER_CREATE_INDEXES = get("create_index", True)
+DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB = get("write_dag_processing_to_db", False)
 
 DB_LOGGER_SQL_ALCHEMY_POOL_ENABLED = get("sql_alchemy_pool_enabled", False)
 DB_LOGGER_SQL_ALCHEMY_POOL_SIZE = get("sql_alchemy_pool_size", 5)
