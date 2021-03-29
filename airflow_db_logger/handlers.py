@@ -47,6 +47,20 @@ class DBLoggingEventHandler(EventHandler):
     close_event_name: str = "close"
 
 
+class StreamHandler(logging.StreamHandler):
+    def __init__(self, stream: str = None, level: str = "WARN") -> None:
+        stream = stream or "stdout"
+        self._use_stderr = "stderr" in stream
+        logging.Handler.__init__(self, level=level)
+
+    @property
+    def stream(self):
+        if self._use_stderr:
+            return sys.__stderr__
+
+        return sys.__stdout__
+
+
 class DBLogStreamWriter(DBLoggingEventHandler):
     _stream_writers: List["DBLogStreamWriter"] = None
 

@@ -80,6 +80,7 @@ configuration of apply these values using envs, like so,
 | [db_logger].`WRITE_DAG_PROCESSING_TO_DB` | Write all dag processing to database (a lot) | `string` | utf-8 |
 | [db_logger].`CONSOLE_FORMATTER` | the formatter to use for teh console | `string` | airflow_coloured
 | [db_logger].`TASK_FORMATTER` | the formatter to use for the task | `string` | airflow
+| [db_logger].`PROCESSER_LOG_LEVEL` | The log level to use for dag processing | `string` | "WARN"
 
 # Contributions
 

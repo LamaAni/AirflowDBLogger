@@ -11,19 +11,17 @@ LOGGING_CONFIG = {
     },
     "handlers": {
         "console": {
-            "class": "logging.StreamHandler",
+            "class": "airflow_db_logger.handlers.StreamHandler",
             "formatter": "shell",
-            "stream": sys.__stdout__,
         },
         "task": {
-            "class": "logging.StreamHandler",
+            "class": "airflow_db_logger.handlers.StreamHandler",
             "formatter": "shell",
-            "stream": sys.__stdout__,
         },
         "processor": {
-            "class": "logging.StreamHandler",
+            "class": "airflow_db_logger.handlers.StreamHandler",
             "formatter": "shell",
-            "stream": sys.__stdout__,
+            "level": "WARN",
         },
     },
     "loggers": {

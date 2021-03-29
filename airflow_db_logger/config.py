@@ -106,6 +106,7 @@ DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=
 DB_LOGGER_WRITE_TO_GCS_BUCKET = get("write_to_gcs_bucket", default=None, allow_empty=True, otype=str)
 DB_LOGGER_WRITE_TO_GCS_PROJECT_ID = get("write_to_gcs_project_id", default=None, allow_empty=True, otype=str)
 DB_LOGGER_WRITE_TO_GCS_MULTI_FILE_LOG = get("write_to_gcs_multi_file_log", default=False)
+DB_LOGGER_PROCESSER_LOG_LEVEL = get("processer_log_level", default="WARN", allow_empty=True, otype=str)
 # True or path
 DB_LOGGER_WRITE_TO_FILES = get("write_to_files", default=False)
 # True or path
