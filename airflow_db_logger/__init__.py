@@ -3,8 +3,10 @@
 __title__ = "airflow_db_logger"
 __author__ = "Zav Shotan"
 
+import sys
 from copy import deepcopy
 import airflow_db_logger.consts as consts
+from airflow.utils.log.logging_mixin import RedirectStdHandler
 
 # THIS IS UGLY
 
@@ -29,23 +31,23 @@ def update_config_from_defaults():
     consts.IS_LOADING_CONFIG = True
 
     processor_handler_config = {
-        "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+        "class": "logging.StreamHandler",
         "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-        "stream": "sys.stdout",
+        "stream": sys.__stdout__,
     }
 
     if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
         processor_handler_config = {
-            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "class": "airflow_db_logger.handlers.DBProcessLogHandler",
             "formatter": DB_LOGGER_CONSOLE_FORMATTER,
         }
 
     LOGGING_CONFIG.update(deepcopy(DEFAULT_LOGGING_CONFIG))
     LOGGING_CONFIG["handlers"] = {
         "console": {
-            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "class": "logging.StreamHandler",
             "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-            "stream": "sys.stdout",
+            "stream": sys.__stdout__,
         },
         "task": {
             "class": "airflow_db_logger.handlers.DBTaskLogHandler",

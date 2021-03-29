@@ -1,3 +1,5 @@
+import sys
+
 LOG_LEVEL = "INFO"
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
@@ -9,19 +11,19 @@ LOGGING_CONFIG = {
     },
     "handlers": {
         "console": {
-            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "class": "logging.StreamHandler",
             "formatter": "shell",
-            "stream": "sys.stdout",
+            "stream": sys.__stdout__,
         },
         "task": {
-            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "class": "logging.StreamHandler",
             "formatter": "shell",
-            "stream": "sys.stdout",
+            "stream": sys.__stdout__,
         },
         "processor": {
-            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "class": "logging.StreamHandler",
             "formatter": "shell",
-            "stream": "sys.stdout",
+            "stream": sys.__stdout__,
         },
     },
     "loggers": {
