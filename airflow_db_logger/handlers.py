@@ -265,6 +265,10 @@ class DBTaskLogHandler(DBLogHandler):
                 self.db_session.add(db_record)
                 self.db_session.commit()
             except Exception:
+                try:
+                    self.db_session.rollback()
+                except:
+                    pass
                 stderr_logger.error(traceback.format_exc())
 
         super().emit(record)
@@ -352,6 +356,11 @@ class DBTaskLogHandler(DBLogHandler):
             return logs, metadata_array
 
         except Exception:
+            if db_session:
+                try:
+                    db_session.rollback()
+                except Exception:
+                    pass
             stderr_logger.error(traceback.format_exc())
             return [f"An error occurred while connecting to the database:\n" + f"{traceback.format_exc()}"], [
                 {"end_of_log": True}
@@ -441,6 +450,10 @@ class DBProcessLogHandler(DBLogHandler):
             self.db_session.add(db_record)
             self.db_session.commit()
         except Exception:
+            try:
+                self.db_session.rollback()
+            except:
+                pass
             stderr_logger.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
             stderr_logger.error(traceback.format_exc())
 
