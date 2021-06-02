@@ -24,6 +24,7 @@ from airflow_db_logger.config import (
     DB_LOGGER_WRITE_TO_FILES,
     DB_LOGGER_WRITE_TO_GCS_BUCKET,
     DB_LOGGER_WRITE_TO_SHELL,
+    AIRFLOW_VERSION_PARTS,
     airflow_db_logger_log,
 )
 
@@ -352,7 +353,9 @@ class DBTaskLogHandler(DBLogHandler):
             for try_number in try_numbers:
                 # logs.appen
                 log = logs_by_try_number.get(try_number, "[No logs found]")
-                logs.append([(task_instance.hostname, log)])
+                if AIRFLOW_VERSION_PARTS[0] > 1:
+                    log = [(task_instance.hostname, log)]
+                logs.append(log)
                 metadata_array.append({"end_of_log": True})
 
             # airflow_db_logger_log.info(traceback.format_stack().j)

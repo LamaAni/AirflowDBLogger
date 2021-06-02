@@ -10,8 +10,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
 from airflow.configuration import conf, AirflowConfigException, log
+from airflow.version import version as AIRFLOW_VERSION
 
 AIRFLOW_CONFIG_SECTION_NAME = "db_logger"
+AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.spl(".")
 
 
 def conf_get_no_warnings_no_errors(*args, **kwargs):
@@ -32,7 +34,7 @@ def get(
     allow_empty: bool = False,
     collection: Union[str, List[str]] = None,
 ):
-    collection = collection or "core"
+    collection = collection or "db_logger"
     collection = collection if isinstance(collection, list) else [collection]
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
@@ -99,7 +101,7 @@ PROCESS_LOG_FILENAME_TEMPLATE = (
     .replace("}}}}", "}}")
 )
 
-
+DB_LOGGER_LOG_LEVEL = get(key="logging_level", default="INFO").upper()
 DB_LOGGER_SQL_ALCHEMY_SCHEMA = get("sql_alchemy_schema", SQL_ALCHEMY_SCHEMA)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION = get("sql_alchemy_conn", SQL_ALCHEMY_CONN)
 DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
@@ -245,6 +247,7 @@ def check_cli_for_init_db():
 
 
 airflow_db_logger_log = logging.getLogger(__file__)
+airflow_db_logger_log.setLevel(DB_LOGGER_LOG_LEVEL)
 airflow_db_logger_log.propagate = False
 airflow_db_logger_log.handlers.clear()
 stderr_handler = logging.StreamHandler(stream=sys.__stderr__)
@@ -258,3 +261,4 @@ else:
     )
 
 airflow_db_logger_log.addHandler(stderr_handler)
+airflow_db_logger_log.info("Initialized.")
