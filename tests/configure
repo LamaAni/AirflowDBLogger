@@ -15,9 +15,13 @@ mkdir -p "$AIRFLOW_PATH" || exit $?
 VENV_FILE_CONFIG="
 PYTHONPATH=\"$REPO_PATH\"
 AIRFLOW_HOME=\"$REPO_PATH/.local/airflow\"
+DAGS_FOLDER=\"$REPO_PATH/tests/dags\"
 AIRFLOW__CORE__LOGGING_CONFIG_CLASS=\"airflow_db_logger.LOGGING_CONFIG\"
 AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS=\"airflow_db_logger.LOGGING_CONFIG\"
+AIRFLOW__CORE__DAGS_FOLDER=\"$REPO_PATH/tests/dags\"
 "
+
+eval VENV_FILE_CONFIG
 
 echo "Writing configuration @ $REPO_PATH/.env..."
 echo "$VENV_FILE_CONFIG" >|"$REPO_PATH/.env" || exit $?
