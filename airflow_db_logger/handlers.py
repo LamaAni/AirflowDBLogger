@@ -48,10 +48,10 @@ class DBLoggingEventHandler(EventHandler):
 
 
 class StreamHandler(logging.StreamHandler):
-    def __init__(self, stream: str = None, level: str = "WARN") -> None:
+    def __init__(self, stream: str = None, level: str = None) -> None:
         stream = stream or "stdout"
         self._use_stderr = "stderr" in stream
-        logging.Handler.__init__(self, level=level)
+        logging.Handler.__init__(self, level=level or LOG_LEVEL)
 
     @property
     def stream(self):

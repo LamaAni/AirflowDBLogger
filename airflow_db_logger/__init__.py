@@ -18,6 +18,7 @@ from airflow_db_logger.config import (  # noqa
     DB_LOGGER_CONSOLE_FORMATTER,  # noqa: E402
     DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB,  # noqa: E402
     DB_LOGGER_PROCESSER_LOG_LEVEL,
+    LOG_LEVEL,
 )
 
 
@@ -28,36 +29,45 @@ def update_config_from_defaults():
         return
 
     # Remove any other loads.
-    consts.IS_DB_LOGGER_LOADING_CONFIG = True
+    try:
+        consts.IS_DB_LOGGER_LOADING_CONFIG = True
 
-    processor_handler_config = {
-        "class": "airflow_db_logger.handlers.StreamHandler",
-        "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-        "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
-    }
-
-    if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
         processor_handler_config = {
-            "class": "airflow_db_logger.handlers.DBProcessLogHandler",
+            "class": "airflow_db_logger.handlers.StreamHandler",
             "formatter": DB_LOGGER_CONSOLE_FORMATTER,
             "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
         }
 
-    LOGGING_CONFIG.update(deepcopy(DEFAULT_LOGGING_CONFIG))
-    LOGGING_CONFIG["handlers"] = {
-        "console": {
-            "class": "airflow_db_logger.handlers.StreamHandler",
-            "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-        },
-        "task": {
-            "class": "airflow_db_logger.handlers.DBTaskLogHandler",
-            "formatter": DB_LOGGER_TASK_FORMATTER,
-        },
-        "processor": processor_handler_config,
-    }
+        if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
+            processor_handler_config = {
+                "class": "airflow_db_logger.handlers.DBProcessLogHandler",
+                "formatter": DB_LOGGER_CONSOLE_FORMATTER,
+                "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
+            }
 
-    # Checking for database initialization
-    check_cli_for_init_db()
+        LOGGING_CONFIG.update(deepcopy(DEFAULT_LOGGING_CONFIG))
+        LOGGING_CONFIG["handlers"] = {
+            "console": {
+                "class": "airflow_db_logger.handlers.StreamHandler",
+                "formatter": DB_LOGGER_CONSOLE_FORMATTER,
+            },
+            "task": {
+                "class": "airflow_db_logger.handlers.DBTaskLogHandler",
+                "formatter": DB_LOGGER_TASK_FORMATTER,
+            },
+            "processor": processor_handler_config,
+        }
+
+        loggers = LOGGING_CONFIG.get("loggers", {})
+
+        # for logger_name in loggers.keys():
+        #     loggers[logger_name]["level"] = LOG_LEVEL
+
+        # Checking for database initialization
+        check_cli_for_init_db()
+
+    finally:
+        consts.IS_DB_LOGGER_LOADING_CONFIG = False
 
 
 update_config_from_defaults()
