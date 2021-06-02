@@ -13,7 +13,8 @@ from airflow.configuration import conf, AirflowConfigException, log
 from airflow.version import version as AIRFLOW_VERSION
 
 AIRFLOW_CONFIG_SECTION_NAME = "db_logger"
-AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.spl(".")
+AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
+AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
 
 
 def conf_get_no_warnings_no_errors(*args, **kwargs):
