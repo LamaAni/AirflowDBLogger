@@ -1,8 +1,8 @@
 from copy import deepcopy
-from airflow_db_logger.shell_logging_config import LOGGING_CONFIG
+from airflow_db_logger.shell_logging_config import create_shell_logging_config
 
-global IS_LOADING_CONFIG
-IS_LOADING_CONFIG = False
+global IS_DB_LOGGER_LOADING_CONFIG
+IS_DB_LOGGER_LOADING_CONFIG = False
 
 global DB_LOGGER_LOGGING_CONFIG
-DB_LOGGER_LOGGING_CONFIG = deepcopy(LOGGING_CONFIG)
+DB_LOGGER_LOGGING_CONFIG = create_shell_logging_config()

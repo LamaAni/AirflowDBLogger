@@ -3,8 +3,8 @@ import sys
 import inspect
 from typing import Type
 
-global IS_LOADING_CONFIG
-IS_LOADING_CONFIG = False
+global IS_DB_LOGGER_LOADING_CONFIG
+IS_DB_LOGGER_LOADING_CONFIG = False
 
 
 def get_is_no_color():

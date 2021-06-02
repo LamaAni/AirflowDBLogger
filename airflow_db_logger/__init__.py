@@ -22,13 +22,13 @@ from airflow_db_logger.config import (  # noqa
 
 
 def update_config_from_defaults():
-    consts.IS_LOADING_CONFIG
+    consts.IS_DB_LOGGER_LOADING_CONFIG
 
-    if consts.IS_LOADING_CONFIG is True:
+    if consts.IS_DB_LOGGER_LOADING_CONFIG is True:
         return
 
     # Remove any other loads.
-    consts.IS_LOADING_CONFIG = True
+    consts.IS_DB_LOGGER_LOADING_CONFIG = True
 
     processor_handler_config = {
         "class": "airflow_db_logger.handlers.StreamHandler",
