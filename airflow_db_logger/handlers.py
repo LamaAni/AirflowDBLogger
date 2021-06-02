@@ -7,6 +7,7 @@ from zthreading.events import EventHandler, Event
 from airflow.utils.helpers import parse_template_string
 from airflow.models import TaskInstance
 from sqlalchemy import asc, desc
+import traceback
 
 from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.utils import get_calling_frame_objects_by_type
@@ -16,20 +17,15 @@ from airflow_db_logger.config import (
     DBLoggerSession,
     DAGS_FOLDER,
     IS_RUNNING_DEBUG_EXECUTOR,
+    IS_USING_COLORED_CONSOLE,
     DB_LOGGER_SHOW_REVERSE_ORDER,
     TASK_LOG_FILENAME_TEMPLATE,
     PROCESS_LOG_FILENAME_TEMPLATE,
     DB_LOGGER_WRITE_TO_FILES,
     DB_LOGGER_WRITE_TO_GCS_BUCKET,
     DB_LOGGER_WRITE_TO_SHELL,
+    airflow_db_logger_log,
 )
-
-stderr_logger = logging.getLogger(__file__)
-stderr_logger.propagate = False
-stderr_logger.handlers.clear()
-stderr_handler = logging.StreamHandler(stream=sys.__stderr__)
-stderr_handler.setFormatter(logging.Formatter(fmt="[%(asctime)s][DBLOGGER] [%(levelname)s] - %(message)s"))
-stderr_logger.addHandler(stderr_handler)
 
 
 class ExecutionLogTaskContextInfo:
@@ -237,7 +233,7 @@ class DBTaskLogHandler(DBLogHandler):
             self._logfile_subpath = os.path.join(self.subfolder_path, self._render_logfile_subpath())
             super().set_context()
         except Exception as err:
-            stderr_logger.error(err)
+            airflow_db_logger_log.error(err)
 
     def emit(self, record: logging.LogRecord):
         """Emits a log record.
@@ -269,7 +265,7 @@ class DBTaskLogHandler(DBLogHandler):
                     self.db_session.rollback()
                 except:
                     pass
-                stderr_logger.error(traceback.format_exc())
+                airflow_db_logger_log.error(traceback.format_exc())
 
         super().emit(record)
 
@@ -314,6 +310,10 @@ class DBTaskLogHandler(DBLogHandler):
 
             logs_by_try_number: Dict[int, List[TaskExecutionLogRecord]] = dict()
 
+            airflow_db_logger_log.info(
+                f"Reading logs: {task_instance.dag_id}/{task_instance.task_id} {try_numbers} {{{task_instance.execution_date}}}"
+            )
+
             log_records_query = (
                 db_session.query(TaskExecutionLogRecord)
                 .filter(TaskExecutionLogRecord.dag_id == task_instance.dag_id)
@@ -344,14 +344,20 @@ class DBTaskLogHandler(DBLogHandler):
                 logs_by_try_number[try_number].append(str(log_record.text))
 
             for try_number in logs_by_try_number.keys():
-                logs_by_try_number[try_number] = "\n".join(logs_by_try_number[try_number])
+                logs_by_try_number[try_number] = str("\n".join(logs_by_try_number[try_number]))
 
             try_numbers.sort()
             logs = []
             metadata_array = []
             for try_number in try_numbers:
-                logs.append(logs_by_try_number[try_number])
+                # logs.appen
+                log = logs_by_try_number.get(try_number, "[No logs found]")
+                logs.append([(task_instance.hostname, log)])
                 metadata_array.append({"end_of_log": True})
+
+            # airflow_db_logger_log.info(traceback.format_stack().j)
+            # traceback.print_stack()
+            airflow_db_logger_log.info(f"Read {len(logs)} logs")
 
             return logs, metadata_array
 
@@ -361,7 +367,7 @@ class DBTaskLogHandler(DBLogHandler):
                     db_session.rollback()
                 except Exception:
                     pass
-            stderr_logger.error(traceback.format_exc())
+            airflow_db_logger_log.error(traceback.format_exc())
             return [f"An error occurred while connecting to the database:\n" + f"{traceback.format_exc()}"], [
                 {"end_of_log": True}
             ]
@@ -425,9 +431,8 @@ class DBProcessLogHandler(DBLogHandler):
             )
             self._db_session = DBLoggerSession()
         except Exception:
-            logging.error("Failed to initialize process logger contexts")
-            traceback.print_exc()
-            # logging.error(err)
+            airflow_db_logger_log.error("Failed to initialize process logger contexts")
+            airflow_db_logger_log.error(traceback.format_exc())
 
     def get_logfile_subpath(self):
         assert self._log_filepath, DBLoggerException(
@@ -454,7 +459,7 @@ class DBProcessLogHandler(DBLogHandler):
                 self.db_session.rollback()
             except:
                 pass
-            stderr_logger.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
-            stderr_logger.error(traceback.format_exc())
+            airflow_db_logger_log.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
+            airflow_db_logger_log.error(traceback.format_exc())
 
         super().emit(record)

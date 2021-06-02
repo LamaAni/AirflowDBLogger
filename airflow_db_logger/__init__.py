@@ -18,6 +18,7 @@ from airflow_db_logger.config import (  # noqa
     DB_LOGGER_CONSOLE_FORMATTER,  # noqa: E402
     DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB,  # noqa: E402
     DB_LOGGER_PROCESSER_LOG_LEVEL,
+    airflow_db_logger_log,
 )
 
 
@@ -70,3 +71,4 @@ def update_config_from_defaults():
 
 
 update_config_from_defaults()
+# airflow_db_logger_log.info("airflow_db_logger initialized")

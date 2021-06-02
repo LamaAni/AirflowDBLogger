@@ -5,7 +5,7 @@ from weakref import WeakValueDictionary
 from zthreading.decorators import collect_delayed_calls_async
 from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.config import BASE_LOG_FOLDER
-from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, stderr_logger
+from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, airflow_db_logger_log
 
 
 class DBLogFileCollectionWriter:
@@ -33,11 +33,11 @@ class DBLogFileCollectionWriter:
                 logfile.write("\n")
 
         except Exception as err:
-            stderr_logger.error("Failed to flash to file @ " + self.filename)
-            stderr_logger.error(err)
+            airflow_db_logger_log.error("Failed to flash to file @ " + self.filename)
+            airflow_db_logger_log.error(err)
 
     def write_async_error(self, err: Exception):
-        stderr_logger.error(err)
+        airflow_db_logger_log.error(err)
 
 
 class DBLogFileWriter(DBLogStreamWriter):

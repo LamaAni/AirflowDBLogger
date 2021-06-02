@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import warnings
+import colorlog
 from typing import Union, List
 from typing import Type
 from enum import Enum
@@ -241,3 +242,19 @@ def check_cli_for_init_db():
     # New system
     if "db" in sys.argv and ("reset" in sys.argv or "init" in sys.argv or "upgrade" in sys.argv):
         init_logger("reset" in sys.argv)
+
+
+airflow_db_logger_log = logging.getLogger(__file__)
+airflow_db_logger_log.propagate = False
+airflow_db_logger_log.handlers.clear()
+stderr_handler = logging.StreamHandler(stream=sys.__stderr__)
+if not IS_USING_COLORED_CONSOLE:
+    stderr_handler.setFormatter(logging.Formatter(fmt="[%(asctime)s][airflow_db_logger][%(levelname)s] %(message)s"))
+else:
+    stderr_handler.setFormatter(
+        colorlog.ColoredFormatter(
+            fmt="%(blue)s[%(asctime)s]%(purple)s[airflow_db_logger]%(log_color)s[%(levelname)s]%(reset)s %(message)s"
+        )
+    )
+
+airflow_db_logger_log.addHandler(stderr_handler)

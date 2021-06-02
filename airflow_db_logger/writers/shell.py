@@ -6,7 +6,7 @@ from weakref import WeakValueDictionary
 from zthreading.decorators import collect_delayed_calls_async
 from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.config import BASE_LOG_FOLDER
-from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, stderr_logger
+from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, airflow_db_logger_log
 
 
 class DBLogShellWriter(DBLogStreamWriter):

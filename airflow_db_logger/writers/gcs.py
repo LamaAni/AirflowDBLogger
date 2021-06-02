@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from weakref import WeakValueDictionary
 from typing import Dict
-from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, stderr_logger
+from airflow_db_logger.handlers import DBLogStreamWriter, DBLogHandler, airflow_db_logger_log
 from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.config import (
     DB_LOGGER_WRITE_TO_GCS_BUCKET,
@@ -64,13 +64,13 @@ class GCSFileLogProcessor:
             blob.upload_from_string("\n".join(records))
 
         except Exception as err:
-            stderr_logger.error(
+            airflow_db_logger_log.error(
                 f"Failed to flash to bucket @ {self.bucket_name}/{self.bucket_inner_path}/{self.filename}"
             )
-            stderr_logger.error(err)
+            airflow_db_logger_log.error(err)
 
     def write_async_error(self, err: Exception):
-        stderr_logger.error(err)
+        airflow_db_logger_log.error(err)
 
 
 class GCSFileWriter(DBLogStreamWriter):
