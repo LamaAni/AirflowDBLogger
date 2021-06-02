@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+command -v realpath >/dev/null
+if [ ! $? ]; then
+  # resolve for mac
+  function realpath() {
+    python3 -c "import os; print(os.path.abspath('$1'))"
+  }
+fi
+
+CUR_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+REPO_PATH="$(realpath "$CUR_DIR/..")"
+AIRFLOW_PATH="$REPO_PATH/.local/airflow"
+
+mkdir -p "$AIRFLOW_PATH" || exit $?
+VENV_FILE_CONFIG="
+PYTHONPATH=\"$REPO_PATH\"
+AIRFLOW_HOME=\"$REPO_PATH/.local/airflow\"
+AIRFLOW__CORE__LOGGING_CONFIG_CLASS=\"airflow_db_logger.LOGGING_CONFIG\"
+AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS=\"airflow_db_logger.LOGGING_CONFIG\"
+"
+
+echo "Writing configuration @ $REPO_PATH/.env..."
+echo "$VENV_FILE_CONFIG" >|"$REPO_PATH/.env" || exit $?
+
+source "$REPO_PATH/.env"
+export AIRFLOW_HOME
+pipenv run bash -c "
+env | grep AIRFLOW
+airflow db init
+"

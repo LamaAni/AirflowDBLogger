@@ -1,12 +1,13 @@
 import sys
 import logging
 
-LOG_LEVEL = logging.INFO
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
 
 
-def create_shell_logging_config(level=logging.INFO):
+def create_shell_logging_config(
+    level=logging.INFO, format: str = LOG_FORMAT, handler_class: str = "airflow_db_logger.handlers.StreamHandler"
+):
     return {
         "version": 1,
         "disable_existing_loggers": False,
@@ -15,43 +16,41 @@ def create_shell_logging_config(level=logging.INFO):
         },
         "handlers": {
             "console": {
-                "class": "airflow_db_logger.handlers.StreamHandler",
+                "class": handler_class,
                 "formatter": "shell",
-                "level": logging.INFO,
             },
             "task": {
-                "class": "airflow_db_logger.handlers.StreamHandler",
+                "class": handler_class,
                 "formatter": "shell",
-                "level": logging.INFO,
             },
             "processor": {
-                "class": "airflow_db_logger.handlers.StreamHandler",
+                "class": handler_class,
                 "formatter": "shell",
-                "level": logging.INFO,
             },
         },
         "loggers": {
             "airflow.processor": {
                 "handlers": ["processor"],
-                "level": LOG_LEVEL,
+                "level": level,
                 "propagate": False,
             },
             "airflow.task": {
                 "handlers": ["task"],
-                "level": LOG_LEVEL,
+                "level": level,
                 "propagate": False,
             },
             "flask_appbuilder": {
                 "handler": ["console"],
-                "level": LOG_LEVEL,
+                "level": level,
                 "propagate": True,
             },
         },
         "root": {
             "handlers": ["console"],
-            "level": LOG_LEVEL,
+            "level": level,
         },
     }
 
 
+SIMPLE_LOGGING_CONFIG = create_shell_logging_config(logging.INFO, handler_class="logging.StreamHandler")
 LOGGING_CONFIG = create_shell_logging_config(logging.INFO)

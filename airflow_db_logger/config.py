@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import warnings
+from typing import Union, List
 from typing import Type
 from enum import Enum
 from sqlalchemy import create_engine
@@ -28,11 +29,20 @@ def get(
     default=None,
     otype: Type = None,
     allow_empty: bool = False,
-    collection: str = None,
+    collection: Union[str, List[str]] = None,
 ):
+    collection = collection or "core"
+    collection = collection if isinstance(collection, list) else [collection]
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
-    val = conf_get_no_warnings_no_errors(collection, key)
+    for col in collection:
+        val = conf_get_no_warnings_no_errors(col, key)
+        if val is not None:
+            break
+
+    assert all([isinstance(v, str) for v in collection]), AirflowConfigException(
+        "Collection must be a non empty string or a collection of non empty strings"
+    )
 
     if issubclass(otype, Enum):
         allow_empty = False
@@ -40,7 +50,9 @@ def get(
     value_is_empty = val is None or (isinstance(val, str) and len(val.strip()) == 0)
 
     if not allow_empty and value_is_empty:
-        assert default is not None, f"Airflow configuration {collection}.{key} not found, and no default value"
+        assert default is not None, AirflowConfigException(
+            f"Airflow configuration {collection}.{key} not found, and no default value"
+        )
         return default
 
     if val is None:
@@ -55,18 +67,18 @@ def get(
 
 
 # Loading airflow parameters
-LOG_LEVEL = get(collection="core", key="logging_level").upper()
-FILENAME_TEMPLATE = get(collection="core", key="LOG_FILENAME_TEMPLATE")
+LOG_LEVEL = get(collection=["logging", "core"], key="logging_level").upper()
+FILENAME_TEMPLATE = get(collection=["logging", "core"], key="LOG_FILENAME_TEMPLATE")
 AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
-IS_USING_COLORED_CONSOLE = get(collection="core", key="colored_console_log").lower() == "true"
+IS_USING_COLORED_CONSOLE = get(collection=["logging", "core"], key="colored_console_log").lower() == "true"
 
 # Loading sql parameters
 SQL_ALCHEMY_CONN = get(collection="core", key="sql_alchemy_conn", allow_empty=False)
 DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
-BASE_LOG_FOLDER = os.path.expanduser(get(collection="core", key="base_log_folder"))
+BASE_LOG_FOLDER = os.path.expanduser(get(collection=["logging", "core"], key="base_log_folder"))
 SQL_ALCHEMY_SCHEMA = get(collection="core", key="sql_alchemy_schema", allow_empty=True)
-COLORED_CONSOLE_LOG = get(collection="core", key="colored_console_log")
+
 TASK_LOG_FILENAME_TEMPLATE = (
     get(
         collection="core",

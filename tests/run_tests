@@ -15,8 +15,5 @@ function log:sep() {
 
 log:sep "Configure local airflow"
 
-CUR_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
-source "$CUR_DIR/local_airflow/configure"
-
 log:sep "Airflow initdb"
 airflow initdb
