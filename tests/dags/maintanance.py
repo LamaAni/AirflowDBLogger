@@ -1,31 +1,17 @@
 from airflow import DAG
 from datetime import datetime
 from airflow.utils.dates import days_ago
-
-from airflow.operators.python import PythonOperator
 from airflow_db_logger.operators import AirflowDBLoggerCleanupOperator
 
-default_args = {"owner": "tester", "start_date": "1/1/2020", "retries": 0}
+default_args = {"owner": "tester", "start_date": days_ago(0), "retries": 0}
 
 dag = DAG(
     "db-log-cleanup",
     default_args=default_args,
-    description="Test base airflow db logger",
+    description="Test base airflow db logger cleanup",
     schedule_interval=None,
     catchup=False,
 )
-
-namespace = None
-
-envs = {
-    "PASS_ARG": "a test",
-}
-
-
-def print_multi(*args, **kwargs):
-    for i in range(100):
-        print(i)
-
 
 with dag:
     AirflowDBLoggerCleanupOperator(
