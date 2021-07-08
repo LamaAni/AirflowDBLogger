@@ -8,7 +8,7 @@ from airflow_db_logger.operators import AirflowDBLoggerCleanupOperator
 default_args = {"owner": "tester", "start_date": "1/1/2020", "retries": 0}
 
 dag = DAG(
-    "db-log-tester",
+    "db-log-cleanup",
     default_args=default_args,
     description="Test base airflow db logger",
     schedule_interval=None,
@@ -28,11 +28,7 @@ def print_multi(*args, **kwargs):
 
 
 with dag:
-    do_print = PythonOperator(
-        task_id="dump_logs_and_wait",
-        python_callable=print_multi,
-    )
-    do_print >> AirflowDBLoggerCleanupOperator(
+    AirflowDBLoggerCleanupOperator(
         task_id="db_log_cleanup",
         up_to=datetime.now(),
         include_operations_log=True,
