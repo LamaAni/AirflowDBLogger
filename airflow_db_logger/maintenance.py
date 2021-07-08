@@ -1,1 +1,0 @@
-from airflow_db_logger.config import AIRFLOW_VERSION_PARTS
