@@ -31,6 +31,8 @@ export AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS
 export AIRFLOW__CORE__LOGGING_CONFIG_CLASS
 export AIRFLOW__CORE__LOAD_EXAMPLES
 
+export AIRFLOW__CORE__EXECUTOR="SequentialExecutor"
+
 echo "Writing configuration @ $REPO_PATH/.env..."
 echo "$VENV_FILE_CONFIG" >|"$REPO_PATH/.env" || exit $?
 
