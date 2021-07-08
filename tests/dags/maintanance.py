@@ -17,6 +17,7 @@ with dag:
     AirflowDBLoggerCleanupOperator(
         task_id="db_log_cleanup",
         up_to=datetime.now(),
+        since=None,
         include_operations_log=True,
         include_task_logs=True,
     )
