@@ -24,7 +24,8 @@ def get_default_loggin_config():
 
     from airflow.config_templates.airflow_local_settings import DEFAULT_LOGGING_CONFIG  # noqa
 
-    os.environ["AIRFLOW__CORE__LOGGING_CONFIG_CLASS"] = action_logging_config_env
-    os.environ["AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS"] = action_logging_config_env
+    if action_logging_config_env is not None:
+        os.environ["AIRFLOW__CORE__LOGGING_CONFIG_CLASS"] = action_logging_config_env
+        os.environ["AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS"] = action_logging_config_env
 
     return DEFAULT_LOGGING_CONFIG
