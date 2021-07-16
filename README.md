@@ -4,9 +4,11 @@
 
 An airflow logger that stores its results in a database given an SQLAlchemy connection.
 
-### BETA
-
-This operator is in beta testing. Contributions are welcome.
+Supports:
+1. Airflow 1.10.x
+2. Airflow 2.1.1
+3. Write and read logs to db.
+4. Logs cleanup operator
 
 # Install
 
