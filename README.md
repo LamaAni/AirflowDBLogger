@@ -33,7 +33,7 @@ pip install git+https://github.com/LamaAni/AirflowDBLogger.git@[tag]
 Add to airflow.cfg,
 
 ```ini
-[core]
+[core or logging(airflow 2)]
 logging_config_class = airflow_db_logger.LOGGING_CONFIG
 
 [db_logger]
