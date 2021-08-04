@@ -4,9 +4,11 @@
 
 An airflow logger that stores its results in a database given an SQLAlchemy connection.
 
-### BETA
-
-This operator is in beta testing. Contributions are welcome.
+Supports:
+1. Airflow 1.10.x
+2. Airflow 2.1.1
+3. Write and read logs to db.
+4. Logs cleanup operator
 
 # Install
 
@@ -33,7 +35,7 @@ pip install git+https://github.com/LamaAni/AirflowDBLogger.git@[tag]
 Add to airflow.cfg,
 
 ```ini
-[core]
+[core or logging(airflow 2)]
 logging_config_class = airflow_db_logger.LOGGING_CONFIG
 
 [db_logger]
