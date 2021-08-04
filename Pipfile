@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+zthreading=">=0.1.15"
 
 [dev-packages]
 
