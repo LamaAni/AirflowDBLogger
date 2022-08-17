@@ -78,12 +78,12 @@ FILENAME_TEMPLATE = get(collection=["logging", "core"], key="LOG_FILENAME_TEMPLA
 AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
 IS_USING_COLORED_CONSOLE = get(collection=["logging", "core"], key="colored_console_log").lower() == "true"
-
-# Loading sql parameters
-SQL_ALCHEMY_CONN = get(collection="core", key="sql_alchemy_conn", allow_empty=False)
 DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
 BASE_LOG_FOLDER = os.path.expanduser(get(collection=["logging", "core"], key="base_log_folder"))
-SQL_ALCHEMY_SCHEMA = get(collection="core", key="sql_alchemy_schema", allow_empty=True)
+
+# Loading sql parameters
+SQL_ALCHEMY_CONN = get(collection=["core", "database"], key="sql_alchemy_conn", allow_empty=False)
+SQL_ALCHEMY_SCHEMA = get(collection=["core", "database"], key="sql_alchemy_schema", allow_empty=True)
 
 TASK_LOG_FILENAME_TEMPLATE = (
     get(
