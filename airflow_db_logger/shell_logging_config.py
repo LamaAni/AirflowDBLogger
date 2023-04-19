@@ -1,4 +1,5 @@
 import logging
+import airflow_db_logger.consts as consts
 
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
@@ -7,7 +8,9 @@ LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
 def create_shell_logging_config(
     level=logging.INFO, format: str = LOG_FORMAT, handler_class: str = "airflow_db_logger.handlers.StreamHandler"
 ):
-    return {
+    # config = consts.get_default_loggin_config()
+    # config["loggers"]
+    config = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
@@ -37,6 +40,7 @@ def create_shell_logging_config(
                 "handlers": ["task"],
                 "level": level,
                 "propagate": False,
+                "filters": ["mask_secrets"],
             },
             "flask_appbuilder": {
                 "handler": ["console"],
@@ -47,6 +51,12 @@ def create_shell_logging_config(
         "root": {
             "handlers": ["console"],
             "level": level,
+            "filters": ["mask_secrets"],
+        },
+        "filters": {
+            "mask_secrets": {
+                "()": "airflow.utils.log.secrets_masker.SecretsMasker",
+            }
         },
     }
 
