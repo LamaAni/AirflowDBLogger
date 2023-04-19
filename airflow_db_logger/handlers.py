@@ -34,6 +34,7 @@ class ExecutionLogTaskContextInfo:
         self.task_id = task_instance.task_id
         self.execution_date = task_instance.execution_date
         self.try_number = task_instance.try_number
+        self.map_index = 0
 
 
 class DBLoggingEventHandler(EventHandler):

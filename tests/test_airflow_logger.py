@@ -1,7 +1,6 @@
 import logging
 import pytest
 from airflow_db_logger.config import init_logger
-from airflow_db_logger.handlers import DBProcessLogHandler, DBTaskLogHandler
 
 init_logger()
 

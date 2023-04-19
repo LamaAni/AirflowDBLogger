@@ -68,4 +68,4 @@ update_config_from_defaults()
 if __name__ == "__main__":
     import json
 
-    print(json.dumps(LOGGING_CONFIG))
+    print(json.dumps(LOGGING_CONFIG, indent=2))

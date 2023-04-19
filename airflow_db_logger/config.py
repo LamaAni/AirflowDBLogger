@@ -42,22 +42,18 @@ def get(
     allow_empty: bool = False,
     collection: Union[str, List[str]] = None,
 ):
-    collection = collection or "db_logger"
+    collection = collection or AIRFLOW_CONFIG_SECTION_NAME
     if isinstance(collection, str):
         collection = [collection]
-
-    assert all(isinstance(v, str) for v in collection), ValueError("Collection must be a string or list of strings")
+    assert all(isinstance(v, str) for v in collection), ValueError("Collection must be a string or a list of strings")
+    collection = [v for v in collection if len(v.strip()) > 0]
+    assert len(collection) > 0, ValueError("Collection must be a non empty string or list of non empty strings")
 
     otype = otype or str if default is None else default.__class__
-    collection = collection or AIRFLOW_CONFIG_SECTION_NAME
     for col in collection:
         val = conf_get_no_warnings_no_errors(col, key)
         if val is not None:
             break
-
-    assert all([isinstance(v, str) for v in collection]), AirflowConfigException(
-        "Collection must be a non empty string or a collection of non empty strings"
-    )
 
     if issubclass(otype, Enum):
         allow_empty = False
