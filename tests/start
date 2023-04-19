@@ -7,24 +7,21 @@ if [ ! $? ]; then
   }
 fi
 
-
-
 CUR_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
-source "$CUR_DIR/configure"
+
+source "$CUR_DIR/../.env"
+
+export PYTHONPATH
+export AIRFLOW_HOME
+export DAGS_FOLDER
+export AIRFLOW__CORE__LOAD_EXAMPLES
+export AIRFLOW__CORE__LOGGING_CONFIG_CLASS
+export AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS
+export AIRFLOW__CORE__DAGS_FOLDER
 
 if [ "$#" -eq 0 ]; then
-  echo "----------------------"
-  echo "Running python version:"
-  python --version
-  echo "----------------------"
-  echo "Running airflow version:"
-  airflow version
-  echo "----------------------"
-  sleep 1
-  airflow scheduler &
-  SCHEDULER_PID="$!"
-  airflow webserver
-  kill "$SCHEDULER_PID"
+  source "$CUR_DIR/configure"
+  airflow standalone
 else
   airflow "$@"
 fi

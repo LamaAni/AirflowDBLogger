@@ -5,8 +5,7 @@ from sqlalchemy.orm import Session, Query
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.models import BaseOperator
 from airflow_db_logger.config import AIRFLOW_MAJOR_VERSION
-from airflow_db_logger.exceptions import DBLoggerException
-from airflow_db_logger.data import DagFileProcessingLogRecord, TaskExecutionLogRecord, LoggerModelBase
+from airflow_db_logger.data import DagFileProcessingLogRecord, TaskExecutionLogRecord
 
 if AIRFLOW_MAJOR_VERSION > 1:
     from airflow.utils.session import provide_session
@@ -24,6 +23,15 @@ class AirflowDBLoggerCleanupOperator(BaseOperator, LoggingMixin):
         include_operations_log=True,
         **kwargs,
     ) -> None:
+        """Cleanup db_logger database logs
+
+        Args:
+            task_id (str): The id of the task.
+            up_to (datetime): Any log before this date will be deleted.
+            since (datetime, optional): Start from this date. Defaults to None.
+            include_task_logs (bool, optional): If true, then clean task logs. Defaults to True.
+            include_operations_log (bool, optional): If true, then clean operations log. Defaults to True.
+        """
         assert isinstance(up_to, datetime), ValueError("up_to must be of type datetime")
 
         super().__init__(task_id=task_id, **kwargs)

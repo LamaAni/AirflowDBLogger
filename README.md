@@ -39,14 +39,14 @@ Add to airflow.cfg,
 logging_config_class = airflow_db_logger.LOGGING_CONFIG
 
 [db_logger]
-SQL_ALCHEMY_CONN=
-SQL_ALCHEMY_SCHEMA=
-SQL_ALCHEMY_POOL_ENABLED=True
-SQL_ALCHEMY_POOL_SIZE=5
-SQL_ALCHEMY_MAX_OVERFLOW=1
-SQL_ALCHEMY_POOL_RECYCLE=1800
-SQL_ALCHEMY_POOL_PRE_PING=True
-SQL_ENGINE_ENCODING=utf-8
+sql_alchemy_conn =
+sql_alchemy_schema =
+sql_alchemy_pool_enabled = true
+sql_alchemy_pool_size = 5
+sql_alchemy_max_overflow = 1
+sql_alchemy_pool_recycle = 1800
+sql_alchemy_pool_pre_ping = true
+sql_engine_encoding = utf-8
 ```
 
 Or use the airflow builtin envs,
@@ -62,27 +62,27 @@ configuration of apply these values using envs, like so,
 
 | section                                  | description                                               | type/values | default                     |
 | ---------------------------------------- | --------------------------------------------------------- | ----------- | --------------------------- |
-| [db_logger].`SQL_ALCHEMY_CONN`           | The sqlalchemy connection string                          | `string`    | [core].`SQL_ALCHEMY_CONN`   |
-| [db_logger].`SQL_ALCHEMY_CONN_ARGS`      | The sqlalchemy connection args                            | `string`    | None                        |
-| [db_logger].`SQL_ALCHEMY_SCHEMA`         | The schema where to put the logging tables.               | `string`    | [core].`SQL_ALCHEMY_SCHEMA` |
-| [db_logger].`SQL_ALCHEMY_POOL_ENABLED`   | If true enable sql alchemy pool                           | `boolean`   | True                        |
-| [db_logger].`SQL_ALCHEMY_POOL_SIZE`      | The size of the sqlalchemy pool.                          | `int`       | 5                           |
-| [db_logger].`SQL_ALCHEMY_MAX_OVERFLOW`   | The max overflow for sqlalchemy                           | `int`       | 1                           |
-| [db_logger].`SQL_ALCHEMY_POOL_RECYCLE`   | The pool recycle time                                     | `int`       | 1800                        |
-| [db_logger].`SQL_ALCHEMY_POOL_PRE_PING`  | If true, do a ping at the connection start.               | `boolean`   | true                        |
-| [db_logger].`SQL_ENGINE_ENCODING`        | THe encoding for the sql engine                           | `string`    | utf-8                       |
+| [db_logger].`sql_alchemy_conn`           | The sqlalchemy connection string                          | `string`    | [core].`sql_alchemy_conn`   |
+| [db_logger].`sql_alchemy_conn_args`      | The sqlalchemy connection args                            | `string`    | None                        |
+| [db_logger].`sql_alchemy_schema`         | The schema where to put the logging tables.               | `string`    | [core].`sql_alchemy_schema` |
+| [db_logger].`sql_alchemy_pool_enabled`   | If true enable sql alchemy pool                           | `boolean`   | True                        |
+| [db_logger].`sql_alchemy_pool_size`      | The size of the sqlalchemy pool.                          | `int`       | 5                           |
+| [db_logger].`sql_alchemy_max_overflow`   | The max overflow for sqlalchemy                           | `int`       | 1                           |
+| [db_logger].`sql_alchemy_pool_recycle`   | The pool recycle time                                     | `int`       | 1800                        |
+| [db_logger].`sql_alchemy_pool_pre_ping`  | If true, do a ping at the connection start.               | `boolean`   | true                        |
+| [db_logger].`sql_engine_encoding`        | THe encoding for the sql engine                           | `string`    | utf-8                       |
 |                                          |                                                           |             |
-| [db_logger].`SHOW_REVERSE_ORDER`         | Show logs in reverse order in airflow log ui              | bool        | false                       |
-| [db_logger].`CREATE_INDEXES`             | If true create db indexis                                 | bool        | false                       |
-| [db_logger].`GOOGLE_APP_CREDS_PATH`      | The credentials file path for google bucket writing (gcs) | `string`    | None                        |
-| [db_logger].`WRITE_TO_GCS_BUCKET`        | The gcs bucket to write to                                | `string`    | None                        |
-| [db_logger].`WRITE_TO_GCS_PROJECT_ID`    | The gcs project to write to                               | `string`    | None                        |
-| [db_logger].`WRITE_TO_FILES`             | If true, writes the log also to files                     | false       | None                        |
-| [db_logger].`WRITE_TO_SHELL`             | Output the logs to shell as well                          | false       | None                        |
-| [db_logger].`WRITE_DAG_PROCESSING_TO_DB` | Write all dag processing to database (a lot)              | `string`    | utf-8                       |
-| [db_logger].`CONSOLE_FORMATTER`          | the formatter to use for teh console                      | `string`    | airflow_coloured            |
-| [db_logger].`TASK_FORMATTER`             | the formatter to use for the task                         | `string`    | airflow                     |
-| [db_logger].`PROCESSER_LOG_LEVEL`        | The log level to use for dag processing                   | `string`    | "WARN"                      |
+| [db_logger].`show_reverse_order`         | Show logs in reverse order in airflow log ui              | bool        | false                       |
+| [db_logger].`create_indexes`             | If true create db indexis                                 | bool        | false                       |
+| [db_logger].`google_app_creds_path`      | The credentials file path for google bucket writing (gcs) | `string`    | None                        |
+| [db_logger].`write_to_gcs_bucket`        | The gcs bucket to write to                                | `string`    | None                        |
+| [db_logger].`write_to_gcs_project_id`    | The gcs project to write to                               | `string`    | None                        |
+| [db_logger].`write_to_files`             | If true, writes the log also to files                     | false       | None                        |
+| [db_logger].`write_to_shell`             | Output the logs to shell as well                          | false       | None                        |
+| [db_logger].`write_dag_processing_to_db` | Write all dag processing to database (a lot)              | `string`    | utf-8                       |
+| [db_logger].`console_formatter`          | the formatter to use for teh console                      | `string`    | airflow_coloured            |
+| [db_logger].`task_formatter`             | the formatter to use for the task                         | `string`    | airflow                     |
+| [db_logger].`processer_log_level`        | The log level to use for dag processing                   | `string`    | "WARN"                      |
 
 # Maintenance
 

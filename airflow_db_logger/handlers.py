@@ -1,13 +1,14 @@
 import logging
 import traceback
+import warnings
 import os
 import sys
 from typing import Dict, List, Union
 from zthreading.events import EventHandler, Event
 from airflow.utils.helpers import parse_template_string
 from airflow.models import TaskInstance
+from airflow.utils.context import AirflowContextDeprecationWarning
 from sqlalchemy import asc, desc
-import traceback
 
 from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.utils import get_calling_frame_objects_by_type
@@ -17,7 +18,6 @@ from airflow_db_logger.config import (
     DBLoggerSession,
     DAGS_FOLDER,
     IS_RUNNING_DEBUG_EXECUTOR,
-    IS_USING_COLORED_CONSOLE,
     DB_LOGGER_SHOW_REVERSE_ORDER,
     TASK_LOG_FILENAME_TEMPLATE,
     PROCESS_LOG_FILENAME_TEMPLATE,
@@ -36,6 +36,7 @@ class ExecutionLogTaskContextInfo:
         self.task_id = task_instance.task_id
         self.execution_date = task_instance.execution_date
         self.try_number = task_instance.try_number
+        self.map_index = 0
 
 
 class DBLoggingEventHandler(EventHandler):
@@ -211,7 +212,14 @@ class DBTaskLogHandler(DBLogHandler):
             jinja_context = self._task_instance.get_template_context()
             jinja_context["ti"] = self.task_context_info
             jinja_context["try_number"] = self.task_context_info.try_number
-            return self.filename_jinja_template.render(**jinja_context)
+            with warnings.catch_warnings():
+                # Render should not have warnings here, since the render should
+                # just throw an error if errored.
+                warnings.filterwarnings(
+                    action="ignore",
+                    category=AirflowContextDeprecationWarning,
+                )
+                return self.filename_jinja_template.render(**jinja_context)
         else:
             # render direct
             return self.filename_template.format(
@@ -264,7 +272,7 @@ class DBTaskLogHandler(DBLogHandler):
             except Exception:
                 try:
                     self.db_session.rollback()
-                except:
+                except Exception:
                     pass
                 airflow_db_logger_log.error(traceback.format_exc())
 
@@ -312,7 +320,10 @@ class DBTaskLogHandler(DBLogHandler):
             logs_by_try_number: Dict[int, List[TaskExecutionLogRecord]] = dict()
 
             airflow_db_logger_log.info(
-                f"Reading logs: {task_instance.dag_id}/{task_instance.task_id} {try_numbers} {{{task_instance.execution_date}}}"
+                (
+                    f"Reading logs: {task_instance.dag_id}/{task_instance.task_id} {try_numbers}"
+                    f" {{{task_instance.execution_date}}}"
+                )
             )
 
             log_records_query = (
@@ -371,7 +382,7 @@ class DBTaskLogHandler(DBLogHandler):
                 except Exception:
                     pass
             airflow_db_logger_log.error(traceback.format_exc())
-            return [f"An error occurred while connecting to the database:\n" + f"{traceback.format_exc()}"], [
+            return [f"An error occurred while connecting to the database:\n{traceback.format_exc()}"], [
                 {"end_of_log": True}
             ]
         finally:
@@ -460,7 +471,7 @@ class DBProcessLogHandler(DBLogHandler):
         except Exception:
             try:
                 self.db_session.rollback()
-            except:
+            except Exception:
                 pass
             airflow_db_logger_log.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
             airflow_db_logger_log.error(traceback.format_exc())

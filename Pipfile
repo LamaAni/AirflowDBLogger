@@ -1,12 +1,14 @@
 [[source]]
+name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
-name = "pypi"
 
 [packages]
-zthreading=">=0.1.15"
+zthreading = ">=0.1.15"
 
 [dev-packages]
+apache-airflow = ">=2.5.3"
+pytest = "*"
 
 [requires]
 python_version = "3.8"

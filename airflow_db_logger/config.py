@@ -1,7 +1,6 @@
 import sys
 import os
 import logging
-import warnings
 import colorlog
 from typing import Union, List
 from typing import Type
@@ -30,6 +29,12 @@ def conf_get_no_warnings_no_errors(*args, **kwargs):
     return val
 
 
+def __add_core(*collections):
+    if AIRFLOW_MAJOR_VERSION < 1:
+        collections = ["core", *collections]
+    return collections
+
+
 def get(
     key: str,
     default=None,
@@ -37,18 +42,18 @@ def get(
     allow_empty: bool = False,
     collection: Union[str, List[str]] = None,
 ):
-    collection = collection or "db_logger"
-    collection = collection if isinstance(collection, list) else [collection]
-    otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
+    if isinstance(collection, str):
+        collection = [collection]
+    assert all(isinstance(v, str) for v in collection), ValueError("Collection must be a string or a list of strings")
+    collection = [v for v in collection if len(v.strip()) > 0]
+    assert len(collection) > 0, ValueError("Collection must be a non empty string or list of non empty strings")
+
+    otype = otype or str if default is None else default.__class__
     for col in collection:
         val = conf_get_no_warnings_no_errors(col, key)
         if val is not None:
             break
-
-    assert all([isinstance(v, str) for v in collection]), AirflowConfigException(
-        "Collection must be a non empty string or a collection of non empty strings"
-    )
 
     if issubclass(otype, Enum):
         allow_empty = False
@@ -73,21 +78,21 @@ def get(
 
 
 # Loading airflow parameters
-LOG_LEVEL = get(collection=["logging", "core"], key="logging_level").upper()
-FILENAME_TEMPLATE = get(collection=["logging", "core"], key="LOG_FILENAME_TEMPLATE")
+LOG_LEVEL = get(collection=__add_core("logging"), key="logging_level").upper()
+FILENAME_TEMPLATE = get(collection=__add_core("logging"), key="LOG_FILENAME_TEMPLATE")
 AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
-IS_USING_COLORED_CONSOLE = get(collection=["logging", "core"], key="colored_console_log").lower() == "true"
+IS_USING_COLORED_CONSOLE = get(collection=__add_core("logging"), key="colored_console_log").lower() == "true"
 DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
-BASE_LOG_FOLDER = os.path.expanduser(get(collection=["logging", "core"], key="base_log_folder"))
+BASE_LOG_FOLDER = os.path.expanduser(get(collection=__add_core("logging"), key="base_log_folder"))
 
 # Loading sql parameters
-SQL_ALCHEMY_CONN = get(collection=["core", "database"], key="sql_alchemy_conn", allow_empty=False)
-SQL_ALCHEMY_SCHEMA = get(collection=["core", "database"], key="sql_alchemy_schema", allow_empty=True)
+SQL_ALCHEMY_CONN = get(collection=__add_core("database"), key="sql_alchemy_conn", allow_empty=False)
+SQL_ALCHEMY_SCHEMA = get(collection=__add_core("database"), key="sql_alchemy_schema", allow_empty=True)
 
 TASK_LOG_FILENAME_TEMPLATE = (
     get(
-        collection="core",
+        collection=__add_core("logging"),
         key="LOG_FILENAME_TEMPLATE",
         default="{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log",
     )
@@ -96,7 +101,7 @@ TASK_LOG_FILENAME_TEMPLATE = (
 )
 PROCESS_LOG_FILENAME_TEMPLATE = (
     get(
-        collection="core",
+        collection=__add_core("logging"),
         key="log_processor_filename_template",
         default="{{ filename }}.log",
     )
@@ -117,7 +122,7 @@ DB_LOGGER_SQL_ALCHEMY_POOL_SIZE = get("sql_alchemy_pool_size", 5)
 DB_LOGGER_SQL_ALCHEMY_MAX_OVERFLOW = get("sql_alchemy_max_overflow", 1)
 DB_LOGGER_SQL_ALCHEMY_POOL_RECYCLE = get("sql_alchemy_pool_recycle", 1800)
 DB_LOGGER_SQL_ALCHEMY_POOL_PRE_PING = get("sql_alchemy_pool_pre_ping", True)
-DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", "utf-8")
+DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", None, allow_empty=True)
 
 DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=None, allow_empty=True, otype=str)
 # A bucket path, requires google-cloud-storage to be installed.
@@ -142,7 +147,6 @@ logging.debug(f"DBLogger indexes: {DB_LOGGER_CREATE_INDEXES}")
 
 
 def create_db_logger_sqlalchemy_engine():
-
     # Configuring the db_logger sql engine.
     engine_args = {}
     if DB_LOGGER_SQL_ALCHEMY_POOL_ENABLED:
@@ -203,9 +207,12 @@ def create_db_logger_sqlalchemy_engine():
     # Allow the user to specify an encoding for their DB otherwise default
     # to utf-8 so jobs & users with non-latin1 characters can still use
     # us.
-    engine_args["encoding"] = DB_LOGGER_SQL_ENGINE_ENCODING
-    # For Python2 we get back a newstr and need a str
-    engine_args["encoding"] = engine_args["encoding"].__str__()
+    if DB_LOGGER_SQL_ENGINE_ENCODING:
+        engine_args["encoding"] = DB_LOGGER_SQL_ENGINE_ENCODING
+
+    # DEPRECATED:
+    # # For Python2 we get back a newstr and need a str
+    # engine_args["encoding"] = engine_args["encoding"].__str__()
 
     return create_engine(DB_LOGGER_SQL_ALCHEMY_CONNECTION, **engine_args)
 

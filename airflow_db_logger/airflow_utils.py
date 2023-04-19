@@ -2,7 +2,7 @@ import logging
 import airflow
 from datetime import datetime
 from airflow import settings
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator
 from sqlalchemy.orm import Session, Query
 
 from airflow_db_logger.config import DBLoggerSession

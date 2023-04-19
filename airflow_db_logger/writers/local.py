@@ -46,7 +46,6 @@ class DBLogFileWriter(DBLogStreamWriter):
         self._pending_loggers: Dict[str, DBLogFileCollectionWriter] = WeakValueDictionary()
 
     def get_file_collection_writer(self, filename: str):
-
         if filename not in self._pending_loggers:
             logger = DBLogFileCollectionWriter(filename)
             self._pending_loggers[filename] = logger
