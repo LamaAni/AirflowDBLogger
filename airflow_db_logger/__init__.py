@@ -3,8 +3,6 @@
 __title__ = "airflow_db_logger"
 __author__ = "Zav Shotan"
 
-import sys
-import os
 from copy import deepcopy
 import airflow_db_logger.consts as consts
 
@@ -58,11 +56,6 @@ def update_config_from_defaults():
             "processor": processor_handler_config,
         }
 
-        loggers = LOGGING_CONFIG.get("loggers", {})
-
-        # for logger_name in loggers.keys():
-        #     loggers[logger_name]["level"] = LOG_LEVEL
-
         # Checking for database initialization
         check_cli_for_init_db()
 
@@ -71,4 +64,3 @@ def update_config_from_defaults():
 
 
 update_config_from_defaults()
-# airflow_db_logger_log.info("airflow_db_logger initialized")
