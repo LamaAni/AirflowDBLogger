@@ -1,4 +1,3 @@
-import sys
 import logging
 
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"

@@ -5,8 +5,7 @@ from sqlalchemy.orm import Session, Query
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.models import BaseOperator
 from airflow_db_logger.config import AIRFLOW_MAJOR_VERSION
-from airflow_db_logger.exceptions import DBLoggerException
-from airflow_db_logger.data import DagFileProcessingLogRecord, TaskExecutionLogRecord, LoggerModelBase
+from airflow_db_logger.data import DagFileProcessingLogRecord, TaskExecutionLogRecord
 
 if AIRFLOW_MAJOR_VERSION > 1:
     from airflow.utils.session import provide_session

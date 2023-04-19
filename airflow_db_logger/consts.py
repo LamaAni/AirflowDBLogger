@@ -1,5 +1,4 @@
 import os
-from copy import deepcopy
 from airflow_db_logger.shell_logging_config import create_shell_logging_config
 
 global IS_DB_LOGGER_LOADING_CONFIG

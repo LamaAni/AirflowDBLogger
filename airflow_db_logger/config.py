@@ -1,7 +1,6 @@
 import sys
 import os
 import logging
-import warnings
 import colorlog
 from typing import Union, List
 from typing import Type
@@ -30,6 +29,12 @@ def conf_get_no_warnings_no_errors(*args, **kwargs):
     return val
 
 
+def __add_core(*collections):
+    if AIRFLOW_MAJOR_VERSION < 1:
+        collections = ["core", *collections]
+    return collections
+
+
 def get(
     key: str,
     default=None,
@@ -38,7 +43,7 @@ def get(
     collection: Union[str, List[str]] = None,
 ):
     collection = collection or "db_logger"
-    collection = collection if isinstance(collection, list) else [collection]
+    collection = list(collection) if isinstance(collection, (list, tuple)) else [collection]
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
     for col in collection:
@@ -73,21 +78,21 @@ def get(
 
 
 # Loading airflow parameters
-LOG_LEVEL = get(collection=["logging", "core"], key="logging_level").upper()
-FILENAME_TEMPLATE = get(collection=["logging", "core"], key="LOG_FILENAME_TEMPLATE")
+LOG_LEVEL = get(collection=__add_core("logging"), key="logging_level").upper()
+FILENAME_TEMPLATE = get(collection=__add_core("logging"), key="LOG_FILENAME_TEMPLATE")
 AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
-IS_USING_COLORED_CONSOLE = get(collection=["logging", "core"], key="colored_console_log").lower() == "true"
+IS_USING_COLORED_CONSOLE = get(collection=__add_core("logging"), key="colored_console_log").lower() == "true"
 DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
-BASE_LOG_FOLDER = os.path.expanduser(get(collection=["logging", "core"], key="base_log_folder"))
+BASE_LOG_FOLDER = os.path.expanduser(get(collection=__add_core("logging"), key="base_log_folder"))
 
 # Loading sql parameters
-SQL_ALCHEMY_CONN = get(collection=["core", "database"], key="sql_alchemy_conn", allow_empty=False)
-SQL_ALCHEMY_SCHEMA = get(collection=["core", "database"], key="sql_alchemy_schema", allow_empty=True)
+SQL_ALCHEMY_CONN = get(collection=__add_core("database"), key="sql_alchemy_conn", allow_empty=False)
+SQL_ALCHEMY_SCHEMA = get(collection=__add_core("database"), key="sql_alchemy_schema", allow_empty=True)
 
 TASK_LOG_FILENAME_TEMPLATE = (
     get(
-        collection="core",
+        collection=__add_core("logging"),
         key="LOG_FILENAME_TEMPLATE",
         default="{{ ti.dag_id }}/{{ ti.task_id }}/{{ ts }}/{{ try_number }}.log",
     )
@@ -96,7 +101,7 @@ TASK_LOG_FILENAME_TEMPLATE = (
 )
 PROCESS_LOG_FILENAME_TEMPLATE = (
     get(
-        collection="core",
+        collection=__add_core("logging"),
         key="log_processor_filename_template",
         default="{{ filename }}.log",
     )
@@ -142,7 +147,6 @@ logging.debug(f"DBLogger indexes: {DB_LOGGER_CREATE_INDEXES}")
 
 
 def create_db_logger_sqlalchemy_engine():
-
     # Configuring the db_logger sql engine.
     engine_args = {}
     if DB_LOGGER_SQL_ALCHEMY_POOL_ENABLED:
