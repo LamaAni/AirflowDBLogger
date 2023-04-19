@@ -43,7 +43,11 @@ def get(
     collection: Union[str, List[str]] = None,
 ):
     collection = collection or "db_logger"
-    collection = list(collection) if isinstance(collection, (list, tuple)) else [collection]
+    if isinstance(collection, str):
+        collection = [collection]
+
+    assert all(isinstance(v, str) for v in collection), ValueError("Collection must be a string or list of strings")
+
     otype = otype or str if default is None else default.__class__
     collection = collection or AIRFLOW_CONFIG_SECTION_NAME
     for col in collection:
@@ -122,7 +126,7 @@ DB_LOGGER_SQL_ALCHEMY_POOL_SIZE = get("sql_alchemy_pool_size", 5)
 DB_LOGGER_SQL_ALCHEMY_MAX_OVERFLOW = get("sql_alchemy_max_overflow", 1)
 DB_LOGGER_SQL_ALCHEMY_POOL_RECYCLE = get("sql_alchemy_pool_recycle", 1800)
 DB_LOGGER_SQL_ALCHEMY_POOL_PRE_PING = get("sql_alchemy_pool_pre_ping", True)
-DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", "utf-8")
+DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", None, allow_empty=True)
 
 DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=None, allow_empty=True, otype=str)
 # A bucket path, requires google-cloud-storage to be installed.
@@ -207,9 +211,12 @@ def create_db_logger_sqlalchemy_engine():
     # Allow the user to specify an encoding for their DB otherwise default
     # to utf-8 so jobs & users with non-latin1 characters can still use
     # us.
-    engine_args["encoding"] = DB_LOGGER_SQL_ENGINE_ENCODING
-    # For Python2 we get back a newstr and need a str
-    engine_args["encoding"] = engine_args["encoding"].__str__()
+    if DB_LOGGER_SQL_ENGINE_ENCODING:
+        engine_args["encoding"] = DB_LOGGER_SQL_ENGINE_ENCODING
+
+    # DEPRECATED:
+    # # For Python2 we get back a newstr and need a str
+    # engine_args["encoding"] = engine_args["encoding"].__str__()
 
     return create_engine(DB_LOGGER_SQL_ALCHEMY_CONNECTION, **engine_args)
 

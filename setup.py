@@ -31,7 +31,6 @@ setup(
     platforms="any",
     license="docs/LICENSE",
     install_requires=[
-        "sqlalchemy>=0.23.1",
         "zthreading>=0.1.15",
     ],
     python_requires=">=3.6",

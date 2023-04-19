@@ -7,7 +7,7 @@ from copy import deepcopy
 import airflow_db_logger.consts as consts
 
 
-LOGGING_CONFIG = consts.DB_LOGGER_LOGGING_CONFIG
+LOGGING_CONFIG = deepcopy(consts.DB_LOGGER_LOGGING_CONFIG)
 AIRFLOW_DEFAULT_LOGGING_CONFIG = consts.get_default_loggin_config()
 
 from airflow_db_logger.config import (  # noqa
@@ -43,7 +43,7 @@ def update_config_from_defaults():
                 "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
             }
 
-        LOGGING_CONFIG.update(deepcopy(AIRFLOW_DEFAULT_LOGGING_CONFIG))
+        LOGGING_CONFIG.update(AIRFLOW_DEFAULT_LOGGING_CONFIG)
         LOGGING_CONFIG["handlers"] = {
             "console": {
                 "class": "airflow_db_logger.handlers.StreamHandler",
@@ -64,3 +64,8 @@ def update_config_from_defaults():
 
 
 update_config_from_defaults()
+
+if __name__ == "__main__":
+    import json
+
+    print(json.dumps(LOGGING_CONFIG))
