@@ -5,8 +5,8 @@
 An airflow logger that stores its results in a database given an SQLAlchemy connection.
 
 Supports:
-1. Airflow 1.10.x
-2. Airflow 2.1.1
+1. Airflow 1.10.x (for AirflowDBLogger <= 2.0.3)
+2. Airflow 2.5.3
 3. Write and read logs to db.
 4. Logs cleanup operator
 
