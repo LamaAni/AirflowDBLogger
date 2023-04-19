@@ -1,11 +1,13 @@
 import logging
 import traceback
+import warnings
 import os
 import sys
 from typing import Dict, List, Union
 from zthreading.events import EventHandler, Event
 from airflow.utils.helpers import parse_template_string
 from airflow.models import TaskInstance
+from airflow.utils.context import AirflowContextDeprecationWarning
 from sqlalchemy import asc, desc
 
 from airflow_db_logger.exceptions import DBLoggerException
@@ -210,7 +212,14 @@ class DBTaskLogHandler(DBLogHandler):
             jinja_context = self._task_instance.get_template_context()
             jinja_context["ti"] = self.task_context_info
             jinja_context["try_number"] = self.task_context_info.try_number
-            return self.filename_jinja_template.render(**jinja_context)
+            with warnings.catch_warnings():
+                # Render should not have warnings here, since the render should
+                # just throw an error if errored.
+                warnings.filterwarnings(
+                    action="ignore",
+                    category=AirflowContextDeprecationWarning,
+                )
+                return self.filename_jinja_template.render(**jinja_context)
         else:
             # render direct
             return self.filename_template.format(

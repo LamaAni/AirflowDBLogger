@@ -1,5 +1,4 @@
 import logging
-import airflow_db_logger.consts as consts
 
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
@@ -8,8 +7,13 @@ LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
 def create_shell_logging_config(
     level=logging.INFO, format: str = LOG_FORMAT, handler_class: str = "airflow_db_logger.handlers.StreamHandler"
 ):
-    # config = consts.get_default_loggin_config()
-    # config["loggers"]
+    from airflow.version import version as AIRFLOW_VERSION
+
+    AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
+    AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
+
+    AIRFLOW_MAJOR_VERSION = AIRFLOW_VERSION_PARTS[0]
+
     config = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -59,6 +63,8 @@ def create_shell_logging_config(
             }
         },
     }
+
+    return config
 
 
 SIMPLE_LOGGING_CONFIG = create_shell_logging_config(logging.INFO, handler_class="logging.StreamHandler")
