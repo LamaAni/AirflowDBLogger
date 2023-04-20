@@ -2,14 +2,14 @@ import sys
 import os
 import logging
 import colorlog
-from typing import Union, List
-from typing import Type
+from typing import Union, List, Type
 from enum import Enum
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import NullPool, QueuePool
 from airflow.configuration import conf, AirflowConfigException, log
 from airflow.version import version as AIRFLOW_VERSION
+
 
 AIRFLOW_CONFIG_SECTION_NAME = "db_logger"
 AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")

@@ -91,7 +91,7 @@ class GCSFileWriter(DBLogStreamWriter):
         if not handler.has_context:
             return
 
-        filename = handler.get_logfile_subpath()
+        filename = handler.logfile_subpath
         assert isinstance(filename, str), DBLoggerException(
             f"Invalid filename when writing log @ {type(handler)}: {DB_LOGGER_WRITE_TO_GCS_BUCKET}/{filename}"
         )

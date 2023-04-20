@@ -10,7 +10,6 @@ from airflow.models import TaskInstance
 from airflow.utils.context import AirflowContextDeprecationWarning
 from sqlalchemy import asc, desc
 
-from airflow_db_logger.exceptions import DBLoggerException
 from airflow_db_logger.utils import get_calling_frame_objects_by_type
 from airflow_db_logger.data import TaskExecutionLogRecord, DagFileProcessingLogRecord
 from airflow_db_logger.config import (
@@ -112,9 +111,23 @@ class DBLogStreamWriter(DBLoggingEventHandler):
 
 
 class DBLogHandler(logging.Handler, DBLoggingEventHandler):
-    def __init__(self, level: Union[str, int] = None):
+    def __init__(
+        self,
+        level: Union[str, int] = None,
+        base_log_folder: str = None,
+        filename_template: str = None,  # This will be ignored (Deprecated)
+        filename_jinja_template: str = "global.log",
+    ):
         logging.Handler.__init__(self, level=level or LOG_LEVEL)
         EventHandler.__init__(self)
+        self.base_log_folder = base_log_folder
+        self.filename_template = filename_template
+        self._logfile_subpath = None
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=AirflowContextDeprecationWarning)
+            _, self.filename_jinja_template = parse_template_string(filename_jinja_template)
+
         self._db_session: DBLoggerSession = None
         for writer in DBLogStreamWriter.get_global_stream_writers():
             self.pipe(writer)
@@ -127,16 +140,27 @@ class DBLogHandler(logging.Handler, DBLoggingEventHandler):
     def db_session(self) -> DBLoggerSession:
         return self._db_session
 
-    def get_logfile_subpath(self):
-        """Returns the file-path associated with the log handler. By default returns 'global.log',
-        Override this method to provide handler specific filepath"""
-        return "global.log"
+    @property
+    def logfile_subpath(self):
+        """Returns the task log filename"""
+        if self._logfile_subpath is None:
+            self._logfile_subpath = self.render_logfile_subpath()
+        return self._logfile_subpath
+
+    def render_logfile_subpath(self, **kwargs) -> str:
+        try:
+            return self.filename_jinja_template.render(**kwargs)
+        except Exception as ex:
+            airflow_db_logger_log.error(ex)
+        return "err-filename-template.log"
 
     def set_context(self):
         """Initialize the db log configuration.
 
         Arguments:
             task_instance {task instance object} -- The task instace to write for.
+
+        Extra args will be added to the context.
         """
         if self._db_session is None:
             self._db_session = DBLoggerSession()
@@ -185,9 +209,18 @@ class DBTaskLogHandler(DBLogHandler):
 
     subfolder_path: str = "tasks"
 
-    def __init__(self, level: Union[str, int] = None):
-        super().__init__(level=level)
-        self.filename_template, self.filename_jinja_template = parse_template_string(TASK_LOG_FILENAME_TEMPLATE)
+    def __init__(
+        self,
+        base_log_folder: str = None,
+        filename_template: str = None,
+        level: Union[str, int] = None,
+    ):
+        super().__init__(
+            filename_template=filename_template,
+            base_log_folder=base_log_folder,
+            level=level,
+            filename_jinja_template=TASK_LOG_FILENAME_TEMPLATE,
+        )
         self._task_context_info: ExecutionLogTaskContextInfo = None
         self._task_instance: TaskInstance = None
         self._logfile_subpath: str = None
@@ -201,33 +234,17 @@ class DBTaskLogHandler(DBLogHandler):
     def has_task_context(self):
         return self._task_context_info is not None
 
-    def get_logfile_subpath(self):
-        """Returns the task log filename"""
-        return self._logfile_subpath
-
-    def _render_logfile_subpath(self):
-        """Returns the task log sub filepath"""
-        if self.filename_jinja_template:
-            # render as jinja
-            jinja_context = self._task_instance.get_template_context()
-            jinja_context["ti"] = self.task_context_info
-            jinja_context["try_number"] = self.task_context_info.try_number
-            with warnings.catch_warnings():
-                # Render should not have warnings here, since the render should
-                # just throw an error if errored.
-                warnings.filterwarnings(
-                    action="ignore",
-                    category=AirflowContextDeprecationWarning,
-                )
-                return self.filename_jinja_template.render(**jinja_context)
-        else:
-            # render direct
-            return self.filename_template.format(
+    def render_logfile_subpath(self, **kwargs) -> str:
+        kwargs.update(
+            dict(
+                ti=self.task_context_info,
                 dag_id=self.task_context_info.dag_id,
                 task_id=self.task_context_info.task_id,
                 execution_date=self.task_context_info.execution_date.isoformat(),
                 try_number=self.task_context_info.try_number,
             )
+        )
+        return super().render_logfile_subpath(**kwargs)
 
     def set_context(self, task_instance):
         """Initialize the db log configuration.
@@ -239,7 +256,7 @@ class DBTaskLogHandler(DBLogHandler):
         try:
             self._task_instance = task_instance
             self._task_context_info = ExecutionLogTaskContextInfo(task_instance)
-            self._logfile_subpath = os.path.join(self.subfolder_path, self._render_logfile_subpath())
+            self._logfile_subpath = os.path.join(self.subfolder_path, self.logfile_subpath)
             super().set_context()
         except Exception as err:
             airflow_db_logger_log.error(err)
@@ -401,20 +418,24 @@ class DBProcessLogHandler(DBLogHandler):
     global_log_file: str = "global.log"
     subfolder_path: str = "process"
 
-    def __init__(self, level: Union[str, int] = None):
-        """
-        :param filename_template: template filename string
-        """
-
-        super().__init__(level=level)
+    def __init__(
+        self,
+        base_log_folder: str = None,
+        filename_template: str = None,
+        level: Union[str, int] = None,
+    ):
+        super().__init__(
+            filename_template=filename_template,
+            base_log_folder=base_log_folder,
+            level=level,
+            filename_jinja_template=PROCESS_LOG_FILENAME_TEMPLATE,
+        )
         self.dag_dir: str = os.path.expanduser(DAGS_FOLDER)
-        self._log_filepath: str = os.path.join("process", "global.log")
-        self.filename_template, self.filename_jinja_template = parse_template_string(PROCESS_LOG_FILENAME_TEMPLATE)
 
     @property
     def dag_relative_filepath(self) -> str:
         """Returns the relative path of the dag filename, to the dags directory."""
-        return self._log_filepath
+        return self._log_file_subpath
 
     def _render_relative_dag_filepath(self, filename: str):
         """Renders a dag log file relative to the dag filepath.
@@ -436,23 +457,16 @@ class DBProcessLogHandler(DBLogHandler):
         """
 
         try:
-            self._log_filepath = (
-                os.path.join(self.subfolder_path, self.global_log_file)
-                if filepath is None
-                else os.path.join(
-                    self.subfolder_path, self.dags_subfolder_path, self._render_relative_dag_filepath(filepath)
+            if filepath:
+                self._log_file_subpath = os.path.join(
+                    self.subfolder_path,
+                    self.dags_subfolder_path,
+                    self._render_relative_dag_filepath(filepath),
                 )
-            )
             self._db_session = DBLoggerSession()
         except Exception:
             airflow_db_logger_log.error("Failed to initialize process logger contexts")
             airflow_db_logger_log.error(traceback.format_exc())
-
-    def get_logfile_subpath(self):
-        assert self._log_filepath, DBLoggerException(
-            "Cannot write dag logs to file, dag_relative_filepath is empty. Context not set."
-        )
-        return self._log_filepath
 
     def emit(self, record: logging.LogRecord):
         """Emits a log record.
@@ -465,7 +479,7 @@ class DBProcessLogHandler(DBLogHandler):
 
         db_record_message = self.format(record)
         try:
-            db_record = DagFileProcessingLogRecord(self._log_filepath, db_record_message)
+            db_record = DagFileProcessingLogRecord(self._log_file_subpath, db_record_message)
             self.db_session.add(db_record)
             self.db_session.commit()
         except Exception:
@@ -473,7 +487,9 @@ class DBProcessLogHandler(DBLogHandler):
                 self.db_session.rollback()
             except Exception:
                 pass
-            airflow_db_logger_log.error(f"Error while attempting to log ({self._log_filepath}): {db_record_message}")
+            airflow_db_logger_log.error(
+                f"Error while attempting to log ({self._log_file_subpath}): {db_record_message}"
+            )
             airflow_db_logger_log.error(traceback.format_exc())
 
         super().emit(record)

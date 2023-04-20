@@ -1,5 +1,6 @@
 import logging
 import pytest
+from airflow_db_logger import LOGGING_CONFIG
 from airflow_db_logger.config import init_logger
 
 init_logger()

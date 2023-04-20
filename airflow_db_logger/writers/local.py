@@ -59,9 +59,9 @@ class DBLogFileWriter(DBLogStreamWriter):
         if not handler.has_context:
             return
 
-        logfile = handler.get_logfile_subpath()
+        logfile = handler.logfile_subpath
         assert isinstance(logfile, str), DBLoggerException(
             f"Invalid logfile when writing log from {type(handler)}: {logfile}"
         )
-        filename = os.path.join(BASE_LOG_FOLDER, handler.get_logfile_subpath())
+        filename = os.path.join(handler.base_log_folder or BASE_LOG_FOLDER, handler.logfile_subpath)
         self.get_file_collection_writer(filename=filename).write(handler.format(record))
