@@ -1,7 +1,9 @@
+from time import sleep
+from datetime import datetime
+
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from datetime import datetime
 
 
 dag = DAG(
@@ -20,7 +22,7 @@ envs = {
 }
 
 bash_command = """
-echo "This is a bash command. Sleeping 1"
+echo "Message from bash. Sleeping 1"
 sleep 1
 echo "Done"
 """
@@ -30,6 +32,8 @@ with dag:
     # BashOperator(task_id="test-bash-fail", bash_command=bash_command + "\nexit 22")
 
     def run_python(do_success=True):
+        print("Message from python. Sleeping 1")
+        sleep(1)
         if not do_success:
             raise Exception("Some kinda error")
 

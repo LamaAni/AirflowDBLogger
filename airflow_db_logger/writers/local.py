@@ -31,6 +31,7 @@ class DBLogFileCollectionWriter:
             with open(self.filename, "a") as logfile:
                 logfile.write("\n".join(records))
                 logfile.write("\n")
+                logfile.flush()
 
         except Exception as err:
             airflow_db_logger_log.error("Failed to flash to file @ " + self.filename)

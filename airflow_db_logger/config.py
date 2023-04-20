@@ -82,7 +82,7 @@ LOG_LEVEL = get(collection=__add_core("logging"), key="logging_level").upper()
 FILENAME_TEMPLATE = get(collection=__add_core("logging"), key="LOG_FILENAME_TEMPLATE")
 AIRFLOW_EXECUTOR = get(collection="core", key="executor")
 IS_RUNNING_DEBUG_EXECUTOR = AIRFLOW_EXECUTOR == "DebugExecutor"
-IS_USING_COLORED_CONSOLE = get(collection=__add_core("logging"), key="colored_console_log").lower() == "true"
+IS_USING_COLORED_CONSOLE = get(collection=__add_core("logging"), key="colored_console_log", default=False)
 DAGS_FOLDER = os.path.expanduser(get(collection="core", key="dags_folder"))
 BASE_LOG_FOLDER = os.path.expanduser(get(collection=__add_core("logging"), key="base_log_folder"))
 
