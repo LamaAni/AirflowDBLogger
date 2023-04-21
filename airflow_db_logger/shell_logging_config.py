@@ -5,20 +5,15 @@ LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
 
 
 def create_shell_logging_config(
-    level=logging.INFO, format: str = LOG_FORMAT, handler_class: str = "airflow_db_logger.handlers.StreamHandler"
+    level=logging.INFO,
+    format: str = LOG_FORMAT,
+    handler_class: str = "airflow_db_logger.handlers.StreamHandler",
 ):
-    from airflow.version import version as AIRFLOW_VERSION
-
-    AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
-    AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
-
-    AIRFLOW_MAJOR_VERSION = AIRFLOW_VERSION_PARTS[0]
-
     config = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            "shell": {"format": LOG_FORMAT},
+            "shell": {"format": format},
         },
         "handlers": {
             "console": {

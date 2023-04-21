@@ -1,11 +1,13 @@
 import sys
+import logging
 from copy import deepcopy
-from airflow_db_logger.logging_config_loopback_defaults import DEFAULT_LOOPBACK_LOGGING_CONFIG
+from airflow_db_logger.config import DB_LOGGER_PROCESSOR_FORMATTER
+from airflow_db_logger.shell_logging_config import create_shell_logging_config
 
 
 class AirflowDBLoggerLoggingConfig:
     def __init__(self) -> None:
-        self._logging_config = DEFAULT_LOOPBACK_LOGGING_CONFIG
+        self._logging_config = create_shell_logging_config(logging.ERROR)
         self._was_initialized = False
 
     @property
@@ -31,49 +33,87 @@ class AirflowDBLoggerLoggingConfig:
             DEFAULT_LOGGING_CONFIG as AIRFLOW_DEFAULT_LOGGING_CONFIG,
         )
 
-        from airflow_db_logger.config import (  # noqa
-            DB_LOGGER_TASK_FORMATTER,  # noqa: E402
-            DB_LOGGER_CONSOLE_FORMATTER,  # noqa: E402
-            DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB,  # noqa: E402
-            DB_LOGGER_PROCESSER_LOG_LEVEL,
+        from airflow_db_logger.config import (
+            LOG_LEVEL,
+            DB_LOGGER_PROCESSOR_LOG_LEVEL,
+            DB_LOGGER_TASK_FORMATTER,
+            DB_LOGGER_CONSOLE_FORMATTER,
+            DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB,
+            DB_LOGGER_ADD_TASK_DEFAULT_LOG_HANDLER,
+            DB_LOGGER_ADD_PROCESSOR_DEFAULT_LOG_HANDLER,
+            DB_LOGGER_OVERRIDE_DEFAULT_CONSOLE_HANDLER,
         )
 
         config = deepcopy(AIRFLOW_DEFAULT_LOGGING_CONFIG)
         processor_handler_config_to_shell = {
             "class": "airflow_db_logger.handlers.StreamHandler",
             "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-            "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
+            "level": DB_LOGGER_PROCESSOR_LOG_LEVEL,
         }
 
         processor_handler_config_to_db = {
-            "class": "airflow_db_logger.handlers.DBProcessLogHandler",
-            "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-            "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
+            "class": "airflow_db_logger.handlers.DBLogHandler",
+            "formatter": DB_LOGGER_PROCESSOR_FORMATTER,
+            "level": DB_LOGGER_PROCESSOR_LOG_LEVEL,
         }
 
-        if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
-            processor_handler_config_to_shell = {
-                "class": "airflow_db_logger.handlers.DBProcessLogHandler",
-                "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-                "level": DB_LOGGER_PROCESSER_LOG_LEVEL,
-            }
-        config["handlers"] = deep_merge_dicts(
-            config["handlers"] if config["handlers"] is not None else {},
-            {
-                "console": {
-                    "class": "airflow_db_logger.handlers.StreamHandler",
-                    "formatter": DB_LOGGER_CONSOLE_FORMATTER,
-                },
-                "task": {
-                    "class": "airflow_db_logger.handlers.DBTaskLogHandler",
-                    "formatter": DB_LOGGER_TASK_FORMATTER,
-                },
-                "processor": processor_handler_config_to_shell
-                if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB
-                else processor_handler_config_to_db,
-            },
+        processor_handler_config = (
+            processor_handler_config_to_db
+            if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB
+            else processor_handler_config_to_shell
         )
 
+        handlers = {
+            "task": {
+                "class": "airflow_db_logger.handlers.DBLogHandler",
+                "formatter": DB_LOGGER_TASK_FORMATTER,
+                "level": LOG_LEVEL,
+            },
+            "airflow.task": config.get("handlers").get("task"),
+            "db_logger.processor": processor_handler_config,
+        }
+
+        if DB_LOGGER_OVERRIDE_DEFAULT_CONSOLE_HANDLER:
+            handlers["console"] = {
+                "class": "airflow_db_logger.handlers.StreamHandler",
+                "formatter": DB_LOGGER_CONSOLE_FORMATTER,
+            }
+
+        task_handlers = ["task"]
+        if DB_LOGGER_ADD_TASK_DEFAULT_LOG_HANDLER:
+            task_handlers.append("airflow.task")
+
+        processor_handlers = []
+
+        if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
+            processor_handlers.append("db_logger.processor")
+
+        if not DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB or DB_LOGGER_ADD_PROCESSOR_DEFAULT_LOG_HANDLER:
+            processor_handlers.append("processor")
+
+        deep_merge_dicts(
+            config,
+            {
+                "handlers": handlers,
+                "loggers": {
+                    "airflow.processor": {
+                        "handlers": processor_handlers,
+                        "level": LOG_LEVEL,
+                        # Set to true here (and reset via set_context)
+                        # so that if no file is configured we still get logs!
+                        "propagate": True,
+                    },
+                    "airflow.task": {
+                        "handlers": task_handlers,
+                        "level": LOG_LEVEL,
+                        # Set to true here (and reset via set_context)
+                        # so that if no file is configured we still get logs!
+                        "propagate": True,
+                        "filters": ["mask_secrets"],
+                    },
+                },
+            },
+        )
         return config
 
 

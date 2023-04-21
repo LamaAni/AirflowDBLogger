@@ -30,9 +30,7 @@ setup(
     packages=["airflow_db_logger", "airflow_db_logger/writers"],
     platforms="any",
     license="docs/LICENSE",
-    install_requires=[
-        "zthreading>=0.1.15",
-    ],
+    install_requires=[],
     python_requires=">=3.6",
     include_package_data=True,
 )

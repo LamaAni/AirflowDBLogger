@@ -5,7 +5,8 @@ import colorlog
 from typing import Union, List, Type
 from enum import Enum
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker, scoped_session, Session
 from sqlalchemy.pool import NullPool, QueuePool
 from airflow.configuration import conf, AirflowConfigException, log
 from airflow.version import version as AIRFLOW_VERSION
@@ -103,47 +104,44 @@ PROCESS_LOG_FILENAME_TEMPLATE = (
     get(
         collection=__add_core("logging"),
         key="log_processor_filename_template",
-        default="{{ filename }}.log",
+        default="{{ filename | default('process', true) }}.log",
     )
     .replace("{{{{", "{{")
     .replace("}}}}", "}}")
 )
 
 DB_LOGGER_LOG_LEVEL = get(key="logging_level", default="INFO").upper()
+DB_LOGGER_PROCESSOR_LOG_LEVEL = get("processor_log_level", default=LOG_LEVEL, allow_empty=True, otype=str)
+DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
+
 DB_LOGGER_SQL_ALCHEMY_SCHEMA = get("sql_alchemy_schema", SQL_ALCHEMY_SCHEMA)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION = get("sql_alchemy_conn", SQL_ALCHEMY_CONN)
-DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION_ARGS = get("sql_alchemy_conn_args", None, allow_empty=True)
-DB_LOGGER_CREATE_INDEXES = get("create_index", True)
-DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB = get("write_dag_processing_to_db", False)
-
+DB_LOGGER_SQL_ALCHEMY_CREATE_INDEXES = get("create_index", True)
 DB_LOGGER_SQL_ALCHEMY_POOL_ENABLED = get("sql_alchemy_pool_enabled", False)
 DB_LOGGER_SQL_ALCHEMY_POOL_SIZE = get("sql_alchemy_pool_size", 5)
 DB_LOGGER_SQL_ALCHEMY_MAX_OVERFLOW = get("sql_alchemy_max_overflow", 1)
 DB_LOGGER_SQL_ALCHEMY_POOL_RECYCLE = get("sql_alchemy_pool_recycle", 1800)
 DB_LOGGER_SQL_ALCHEMY_POOL_PRE_PING = get("sql_alchemy_pool_pre_ping", True)
-DB_LOGGER_SQL_ENGINE_ENCODING = get("sql_engine_encoding", None, allow_empty=True)
+DB_LOGGER_SQL_ALCHEMY_ENGINE_ENCODING = get("sql_engine_encoding", None, allow_empty=True)
 
-DB_LOGGER_GOOGLE_APP_CREDS_PATH = get("google_application_credentials", default=None, allow_empty=True, otype=str)
-# A bucket path, requires google-cloud-storage to be installed.
-DB_LOGGER_WRITE_TO_GCS_BUCKET = get("write_to_gcs_bucket", default=None, allow_empty=True, otype=str)
-DB_LOGGER_WRITE_TO_GCS_PROJECT_ID = get("write_to_gcs_project_id", default=None, allow_empty=True, otype=str)
-DB_LOGGER_WRITE_TO_GCS_MULTI_FILE_LOG = get("write_to_gcs_multi_file_log", default=False)
-DB_LOGGER_PROCESSER_LOG_LEVEL = get("processer_log_level", default="WARN", allow_empty=True, otype=str)
-# True or path
-DB_LOGGER_WRITE_TO_FILES = get("write_to_files", default=False)
-# True or path
+DB_LOGGER_ADD_TASK_DEFAULT_LOG_HANDLER = get("add_task_default_log_handler", default=True)
+DB_LOGGER_ADD_PROCESSOR_DEFAULT_LOG_HANDLER = get("add_processor_default_log_handler", default=False)
+DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB = get("write_dag_processing_to_db", False)
+DB_LOGGER_WRITE_APP_LOGS_TO_DB = get("db_logger_write_app_logs_to_db", default=False)
 DB_LOGGER_WRITE_TO_SHELL = get("write_to_shell", default=IS_RUNNING_DEBUG_EXECUTOR)
+DB_LOGGER_OVERRIDE_DEFAULT_CONSOLE_HANDLER = get("override_default_console_handler", default=True)
 
 DB_LOGGER_CONSOLE_FORMATTER = "airflow_coloured" if IS_USING_COLORED_CONSOLE else "airflow"
-DB_LOGGER_TASK_FORMATTER = "airflow_coloured" if IS_RUNNING_DEBUG_EXECUTOR and IS_USING_COLORED_CONSOLE else "airflow"
+DB_LOGGER_TASK_FORMATTER = "airflow"
+DB_LOGGER_PROCESSOR_FORMATTER = "airflow"
 
 
 # Setting the default logger log level
 logging.basicConfig(level=LOG_LEVEL)
 
 logging.debug(f"DBLogger is connecting to: {DB_LOGGER_SQL_ALCHEMY_CONNECTION}/{DB_LOGGER_SQL_ALCHEMY_SCHEMA}")
-logging.debug(f"DBLogger indexes: {DB_LOGGER_CREATE_INDEXES}")
+logging.debug(f"DBLogger indexes: {DB_LOGGER_SQL_ALCHEMY_CREATE_INDEXES}")
 
 
 def create_db_logger_sqlalchemy_engine():
@@ -207,8 +205,8 @@ def create_db_logger_sqlalchemy_engine():
     # Allow the user to specify an encoding for their DB otherwise default
     # to utf-8 so jobs & users with non-latin1 characters can still use
     # us.
-    if DB_LOGGER_SQL_ENGINE_ENCODING:
-        engine_args["encoding"] = DB_LOGGER_SQL_ENGINE_ENCODING
+    if DB_LOGGER_SQL_ALCHEMY_ENGINE_ENCODING:
+        engine_args["encoding"] = DB_LOGGER_SQL_ALCHEMY_ENGINE_ENCODING
 
     # DEPRECATED:
     # # For Python2 we get back a newstr and need a str
@@ -218,9 +216,9 @@ def create_db_logger_sqlalchemy_engine():
 
 
 # The main db session. Used in all logging.
-DB_LOGGER_ENGINE = create_db_logger_sqlalchemy_engine()
+DB_LOGGER_ENGINE: Engine = create_db_logger_sqlalchemy_engine()
 
-DBLoggerSession = scoped_session(
+DBLoggerSession: Session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=DB_LOGGER_ENGINE, expire_on_commit=False)
 )
 
@@ -240,6 +238,7 @@ def init_logger(reset=False):
         LoggerModelBase.metadata.drop_all(DB_LOGGER_ENGINE)
     else:
         log.info("Initialzing db_logger tables...")
+
     LoggerModelBase.metadata.create_all(DB_LOGGER_ENGINE)
 
     log.info("AirflowDBLogger tables initialized.")

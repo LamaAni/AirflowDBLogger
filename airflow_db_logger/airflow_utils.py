@@ -6,7 +6,7 @@ from airflow.operators.python import PythonOperator
 from sqlalchemy.orm import Session, Query
 
 from airflow_db_logger.config import DBLoggerSession
-from airflow_db_logger.data import TaskExecutionLogRecord, DagFileProcessingLogRecord, LoggerModelBase
+from airflow_db_logger.data import DBLoggerLogRecord, DagFileProcessingLogRecord, LoggerModelBase
 
 
 def create_clean_old_logs_task(
@@ -30,7 +30,7 @@ def create_clean_old_logs_task(
     def clean_airflow_logs(*args, **kwargs):
         logging.info(f"Cleaning up logs from {after} to {before}")
         session: Session = DBLoggerSession()
-        task_logs = create_select_query(session, TaskExecutionLogRecord)
+        task_logs = create_select_query(session, DBLoggerLogRecord)
         processor_logs = create_select_query(session, DagFileProcessingLogRecord)
 
         task_logs.delete()

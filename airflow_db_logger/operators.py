@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 from sqlalchemy.orm import Session, Query
 
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.models import BaseOperator
 from airflow_db_logger.config import AIRFLOW_MAJOR_VERSION
-from airflow_db_logger.data import DagFileProcessingLogRecord, TaskExecutionLogRecord
+from airflow_db_logger.data import DBLoggerLogRecord, DBLoggerLogCategory
 
 if AIRFLOW_MAJOR_VERSION > 1:
     from airflow.utils.session import provide_session
@@ -19,8 +19,7 @@ class AirflowDBLoggerCleanupOperator(BaseOperator, LoggingMixin):
         task_id: str,
         up_to: datetime,
         since: datetime = None,
-        include_task_logs=True,
-        include_operations_log=True,
+        categories: List[DBLoggerLogCategory] = None,
         **kwargs,
     ) -> None:
         """Cleanup db_logger database logs
@@ -29,21 +28,20 @@ class AirflowDBLoggerCleanupOperator(BaseOperator, LoggingMixin):
             task_id (str): The id of the task.
             up_to (datetime): Any log before this date will be deleted.
             since (datetime, optional): Start from this date. Defaults to None.
-            include_task_logs (bool, optional): If true, then clean task logs. Defaults to True.
-            include_operations_log (bool, optional): If true, then clean operations log. Defaults to True.
+            categories (DBLoggerLogCategory, optional): Limit the cleanup to the specified categories.
+                If None then all.
         """
         assert isinstance(up_to, datetime), ValueError("up_to must be of type datetime")
 
         super().__init__(task_id=task_id, **kwargs)
 
-        assert include_operations_log or include_task_logs, ValueError(
-            "Either include_operations_log or include_task_logs must be true"
+        assert categories is None or len(categories) > 0, ValueError(
+            "You must provide at least one category (None for all)"
         )
 
         self.upto = up_to
         self.since = since
-        self.include_task_logs = include_task_logs
-        self.include_operations_log = include_operations_log
+        self.categories = categories
 
     @provide_session
     def execute(self, session: Session, context: Any):
@@ -54,26 +52,17 @@ class AirflowDBLoggerCleanupOperator(BaseOperator, LoggingMixin):
         since = self.since if self.since is not None else "Beginning of time"
         upto = self.upto
 
-        if self.include_operations_log:
-            self.log.info(f"operations logs: Deleting from {since} -> {upto}")
-            query: Query = session.query(DagFileProcessingLogRecord)
-            query = query.filter(DagFileProcessingLogRecord.timestamp < self.upto)
-            if self.since:
-                query = query.filter(DagFileProcessingLogRecord.timestamp >= self.since)
+        self.log.info(f"Deleting logs {since} -> {upto}")
+        query: Query = session.query(DBLoggerLogRecord)
+        query = query.filter(DBLoggerLogRecord.timestamp < self.upto)
+        if self.since:
+            query = query.filter(DBLoggerLogRecord.timestamp >= self.since)
 
-            delete_count = query.delete()
-            query.session.commit()
-            self.log.info(f"operations logs: Deleted {delete_count} records")
+        if self.categories:
+            self.log.info(f"Limited to categories: {self.categories}")
+            query = query.filter(DBLoggerLogRecord.category.in_(self.categories))
 
-        if self.include_task_logs:
-            self.log.info(f"Task logs: Deleting from {since} -> {upto}")
-            query: Query = session.query(TaskExecutionLogRecord)
-            query = query.filter(TaskExecutionLogRecord.timestamp < self.upto)
-            if self.since:
-                query = query.filter(TaskExecutionLogRecord.timestamp >= self.since)
+        delete_count = query.delete()
+        query.session.commit()
 
-            delete_count = query.delete()
-            query.session.commit()
-            self.log.info(f"Task logs: Deleted {delete_count} records")
-
-        self.log.info("Cleanup complete")
+        self.log.info(f"Deleted {delete_count} records")
