@@ -10,9 +10,7 @@ AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
 AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
 AIRFLOW_MAJOR_VERSION = AIRFLOW_VERSION_PARTS[0]
 
-DB_LOGGER_DEFAULT_LOG_SPLASH = """
---- AIrflow DBLogger: logs loaded from database ---
-"""
+DB_LOGGER_DEFAULT_LOG_SPLASH = "[Airflow DBLogger] logs loaded from database\n"
 
 
 def conf_get_no_warnings_no_errors(*args, **kwargs):
