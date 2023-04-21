@@ -27,12 +27,10 @@ setup(
     author="Zav Shotan",
     author_email="",
     url="https://github.com/LamaAni/AirflowDBLogger",
-    packages=["airflow_db_logger", "airflow_db_logger/writers"],
+    packages=["airflow_db_logger"],
     platforms="any",
     license="docs/LICENSE",
-    install_requires=[
-        "zthreading>=0.1.15",
-    ],
+    install_requires=[],
     python_requires=">=3.6",
     include_package_data=True,
 )

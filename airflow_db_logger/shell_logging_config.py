@@ -1,24 +1,45 @@
+import sys
 import logging
 
 LOG_FORMAT_HEADER = "[%(asctime)s][%(levelname)7s]"
 LOG_FORMAT = LOG_FORMAT_HEADER + " %(message)s"
 
 
+class StreamHandler(logging.StreamHandler):
+    def __init__(
+        self,
+        stream: str = None,
+        level: str = None,
+        **kwargs,  # should actually accept anything since this is the override handler
+    ) -> None:
+        """General logging stream handler
+
+        Args:
+            stream (str, optional): The stream to write to. Defaults to None.
+            level (str, optional): The log level. Defaults to None.
+        """
+        stream = stream or "stdout"
+        self._use_stderr = "stderr" in stream
+        logging.Handler.__init__(self, level=level or logging.INFO)
+
+    @property
+    def stream(self):
+        if self._use_stderr:
+            return sys.__stderr__
+
+        return sys.__stdout__
+
+
 def create_shell_logging_config(
-    level=logging.INFO, format: str = LOG_FORMAT, handler_class: str = "airflow_db_logger.handlers.StreamHandler"
+    level=logging.INFO,
+    format: str = LOG_FORMAT,
+    handler_class: str = "logging.StreamHandler",
 ):
-    from airflow.version import version as AIRFLOW_VERSION
-
-    AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
-    AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
-
-    AIRFLOW_MAJOR_VERSION = AIRFLOW_VERSION_PARTS[0]
-
     config = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            "shell": {"format": LOG_FORMAT},
+            "shell": {"format": format},
         },
         "handlers": {
             "console": {

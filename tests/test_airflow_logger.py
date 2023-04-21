@@ -1,8 +1,8 @@
 import logging
 import pytest
-from airflow_db_logger.config import init_logger
 
-init_logger()
+from airflow import DAG  # noqa F403
+
 
 task_logger = logging.getLogger("airflow.task")
 process_logger = logging.getLogger("airflow.processor")
@@ -22,4 +22,5 @@ def test_airflow_flask_logger():
 
 
 if __name__ == "__main__":
-    pytest.main(["-x", __file__])
+    test_airflow_process_logger()
+    # pytest.main(["-v", "-x", __file__])

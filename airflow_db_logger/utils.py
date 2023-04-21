@@ -41,6 +41,22 @@ def get_calling_frame_objects_by_type(otype: Type, offset: int = 1, first_only=F
     return lst
 
 
+def deep_merge_dicts(target: dict, *args):
+    assert isinstance(target, dict), "Target must be a dict"
+    for src in args:
+        assert isinstance(src, dict), "All merge items must be dicts"
+
+        for key in src.keys():
+            if key not in target:
+                target[key] = src[key]
+                continue
+            if isinstance(src[key], dict) and isinstance(target[key], dict):
+                target[key] = deep_merge_dicts({}, target[key], src[key])
+            else:
+                target[key] = src[key]
+    return target
+
+
 class style:
     GRAY = lambda x: colorize(str(x), "\033[90m")  # noqa: E731
     LIGHT_GRAY = lambda x: colorize(str(x), "\033[37m")  # noqa: E731
