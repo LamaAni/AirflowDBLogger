@@ -1,8 +1,17 @@
 import sys
 import logging
 from copy import deepcopy
-from airflow_db_logger.config import DB_LOGGER_PROCESSOR_FORMATTER
 from airflow_db_logger.shell_logging_config import create_shell_logging_config
+
+LOGGING_CONFIG: dict = None
+
+
+def init_logging_config(self, force: bool = False):
+    pass
+
+
+def create_logging_config():
+    pass
 
 
 class AirflowDBLoggerLoggingConfig:
@@ -21,20 +30,16 @@ class AirflowDBLoggerLoggingConfig:
         self._was_initialized = True
         self._logging_config.update(self.create_logging_config())
 
-        from airflow_db_logger.config import check_cli_for_init_db
-
-        # Checking for database initialization
-        check_cli_for_init_db()
-
     def create_logging_config(self):
         from airflow_db_logger.utils import deep_merge_dicts
-
         from airflow.config_templates.airflow_local_settings import (
             DEFAULT_LOGGING_CONFIG as AIRFLOW_DEFAULT_LOGGING_CONFIG,
         )
 
         from airflow_db_logger.config import (
             LOG_LEVEL,
+            DB_LOGGER_PROCESSOR_FORMATTER,
+            DB_LOGGER_WRITE_TO_SHELL,
             DB_LOGGER_PROCESSOR_LOG_LEVEL,
             DB_LOGGER_TASK_FORMATTER,
             DB_LOGGER_CONSOLE_FORMATTER,
@@ -46,7 +51,7 @@ class AirflowDBLoggerLoggingConfig:
 
         config = deepcopy(AIRFLOW_DEFAULT_LOGGING_CONFIG)
         processor_handler_config_to_shell = {
-            "class": "airflow_db_logger.handlers.StreamHandler",
+            "class": "airflow_db_logger.shell_logging_config.StreamHandler",
             "formatter": DB_LOGGER_CONSOLE_FORMATTER,
             "level": DB_LOGGER_PROCESSOR_LOG_LEVEL,
         }
@@ -63,6 +68,9 @@ class AirflowDBLoggerLoggingConfig:
             else processor_handler_config_to_shell
         )
 
+        # Processor and task handlers are overwritten since
+        # airflow uses these handlers in other locations.
+
         handlers = {
             "task": {
                 "class": "airflow_db_logger.handlers.DBLogHandler",
@@ -70,12 +78,13 @@ class AirflowDBLoggerLoggingConfig:
                 "level": LOG_LEVEL,
             },
             "airflow.task": config.get("handlers").get("task"),
-            "db_logger.processor": processor_handler_config,
+            "processor": processor_handler_config,
+            "airflow.processor": config.get("handlers").get("processor"),
         }
 
         if DB_LOGGER_OVERRIDE_DEFAULT_CONSOLE_HANDLER:
             handlers["console"] = {
-                "class": "airflow_db_logger.handlers.StreamHandler",
+                "class": "airflow_db_logger.shell_logging_config.StreamHandler",
                 "formatter": DB_LOGGER_CONSOLE_FORMATTER,
             }
 
@@ -86,10 +95,10 @@ class AirflowDBLoggerLoggingConfig:
         processor_handlers = []
 
         if DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB:
-            processor_handlers.append("db_logger.processor")
+            processor_handlers.append("processor")
 
         if not DB_LOGGER_WRITE_DAG_PROCESSING_TO_DB or DB_LOGGER_ADD_PROCESSOR_DEFAULT_LOG_HANDLER:
-            processor_handlers.append("processor")
+            processor_handlers.append("airflow.processor")
 
         deep_merge_dicts(
             config,
@@ -101,14 +110,14 @@ class AirflowDBLoggerLoggingConfig:
                         "level": LOG_LEVEL,
                         # Set to true here (and reset via set_context)
                         # so that if no file is configured we still get logs!
-                        "propagate": True,
+                        "propagate": DB_LOGGER_WRITE_TO_SHELL,
                     },
                     "airflow.task": {
                         "handlers": task_handlers,
                         "level": LOG_LEVEL,
                         # Set to true here (and reset via set_context)
                         # so that if no file is configured we still get logs!
-                        "propagate": True,
+                        "propagate": DB_LOGGER_WRITE_TO_SHELL,
                         "filters": ["mask_secrets"],
                     },
                 },

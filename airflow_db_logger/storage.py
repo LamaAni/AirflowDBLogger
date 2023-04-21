@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session, Query
 from airflow.models import TaskInstance
 
 from airflow_db_logger.data import DBLoggerLogRecord, DBLoggerLogCategory
+from airflow_db_logger.log import airflow_db_logger_log
+from airflow_db_logger.db import db_logger_session
 from airflow_db_logger.config import (
-    DBLoggerSession,
     DB_LOGGER_SHOW_REVERSE_ORDER,
     AIRFLOW_MAJOR_VERSION,
-    airflow_db_logger_log,
 )
 
 
@@ -99,7 +99,7 @@ def write_log(
     record = context.create_record(msg)
     session_created = False
     if db_session is None:
-        db_session: Session = DBLoggerSession()
+        db_session: Session = db_logger_session()
         session_created = True
 
     try:
@@ -125,7 +125,7 @@ def read_log_records(
 ):
     session_created = False
     if db_session is None:
-        db_session: Session = DBLoggerSession()
+        db_session: Session = db_logger_session()
         session_created = True
 
     try:

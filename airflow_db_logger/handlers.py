@@ -1,15 +1,14 @@
-import sys
 import logging
 from typing import Union
 from airflow.models import TaskInstance
 
 from airflow_db_logger.utils import get_calling_frame_objects_by_type
 from airflow_db_logger.storage import read_airflow_logs, write_log, ExecutingLogContext
+from airflow_db_logger.log import airflow_db_logger_log
 from airflow_db_logger.config import (
     LOG_LEVEL,
-    DBLoggerSession,
+    db_logger_session,
     IS_RUNNING_DEBUG_EXECUTOR,
-    airflow_db_logger_log,
 )
 
 
@@ -26,7 +25,7 @@ class DBLogHandler(logging.Handler):
         self.base_log_folder = base_log_folder
 
         self.__context: ExecutingLogContext = None
-        self._db_session: DBLoggerSession = None
+        self._db_session: db_logger_session = None
 
     @property
     def context(self):
@@ -41,7 +40,7 @@ class DBLogHandler(logging.Handler):
         return self._db_session is not None
 
     @property
-    def db_session(self) -> DBLoggerSession:
+    def db_session(self) -> db_logger_session:
         return self._db_session
 
     def set_context(self, context_item: Union[TaskInstance, str] = None):
@@ -52,7 +51,7 @@ class DBLogHandler(logging.Handler):
                 processing context, if None the general. Defaults to None.
         """
         if not self.has_session:
-            self._db_session = DBLoggerSession()
+            self._db_session = db_logger_session()
 
         filepath: str = context_item if isinstance(context_item, str) else None
         ti: TaskInstance = context_item if isinstance(context_item, TaskInstance) else None
@@ -123,28 +122,3 @@ class DBLogHandler(logging.Handler):
         if self.db_session is not None:
             self.db_session.close()
             self._db_session = None
-
-
-class StreamHandler(logging.StreamHandler):
-    def __init__(
-        self,
-        stream: str = None,
-        level: str = None,
-        **kwargs,  # should actually accept anything since this is the override handler
-    ) -> None:
-        """General logging stream handler
-
-        Args:
-            stream (str, optional): The stream to write to. Defaults to None.
-            level (str, optional): The log level. Defaults to None.
-        """
-        stream = stream or "stdout"
-        self._use_stderr = "stderr" in stream
-        logging.Handler.__init__(self, level=level or LOG_LEVEL)
-
-    @property
-    def stream(self):
-        if self._use_stderr:
-            return sys.__stderr__
-
-        return sys.__stdout__
