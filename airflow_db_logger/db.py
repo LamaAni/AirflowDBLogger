@@ -130,6 +130,10 @@ def check_cli_for_init_db(reset: bool = None, engine: Engine = None):
     init_db(reset=reset, engine=engine)
 
 
+def create_db_logger_sqlalchemy_session() -> Session:
+    pass
+
+
 # Property override
 class __Module:
     def __init__(self) -> None:
@@ -143,17 +147,20 @@ class __Module:
         return self._engine
 
     @property
-    def db_logger_session(self) -> object:
+    def db_logger_session(self) -> Session:
         if self._session is None:
-            self._session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=DB_LOGGER_ENGINE,
-                    expire_on_commit=False,
-                )
+            self._session = self.create_db_logger_sqlalchemy_session()
+        return self._session
+
+    def create_db_logger_sqlalchemy_session(self) -> Session:
+        return scoped_session(
+            sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=self.DB_LOGGER_ENGINE,
+                expire_on_commit=False,
             )
-        return None
+        )
 
     def create_db_logger_sqlalchemy_engine(self):
         return create_db_logger_sqlalchemy_engine()

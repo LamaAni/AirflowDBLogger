@@ -5,9 +5,9 @@ from airflow.models import TaskInstance
 from airflow_db_logger.utils import get_calling_frame_objects_by_type
 from airflow_db_logger.storage import read_airflow_logs, write_log, ExecutingLogContext
 from airflow_db_logger.log import airflow_db_logger_log
+from airflow_db_logger.db import db_logger_session
 from airflow_db_logger.config import (
     LOG_LEVEL,
-    db_logger_session,
     IS_RUNNING_DEBUG_EXECUTOR,
 )
 

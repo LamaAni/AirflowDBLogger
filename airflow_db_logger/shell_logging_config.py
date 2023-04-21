@@ -33,7 +33,7 @@ class StreamHandler(logging.StreamHandler):
 def create_shell_logging_config(
     level=logging.INFO,
     format: str = LOG_FORMAT,
-    handler_class: str = "airflow_db_logger.shell_logging_config.StreamHandler",
+    handler_class: str = "logging.StreamHandler",
 ):
     config = {
         "version": 1,
