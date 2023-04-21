@@ -199,7 +199,7 @@ def read_airflow_logs(
         for try_number, record_list in records_by_try_number.items():
             lines = []
             if DB_LOGGER_SHOW_LOG_SPLASH:
-                lines.append(DB_LOGGER_SHOW_LOG_SPLASH)
+                lines.append(str(DB_LOGGER_LOG_SPLASH))
             lines += map(lambda v: str(v.text), record_list)
             log_text = "\n".join(lines)
 
