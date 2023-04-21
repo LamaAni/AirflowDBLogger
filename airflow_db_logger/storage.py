@@ -10,6 +10,8 @@ from airflow_db_logger.db import db_logger_session
 from airflow_db_logger.config import (
     DB_LOGGER_SHOW_REVERSE_ORDER,
     AIRFLOW_MAJOR_VERSION,
+    DB_LOGGER_SHOW_LOG_SPLASH,
+    DB_LOGGER_LOG_SPLASH,
 )
 
 
@@ -195,7 +197,12 @@ def read_airflow_logs(
         # parsing the log
         logs_by_try_number: Dict[int, str] = dict()
         for try_number, record_list in records_by_try_number.items():
-            log_text = "\n".join(map(lambda v: str(v.text), record_list))
+            lines = []
+            if DB_LOGGER_SHOW_LOG_SPLASH:
+                lines.append(DB_LOGGER_SHOW_LOG_SPLASH)
+            lines += map(lambda v: str(v.text), record_list)
+            log_text = "\n".join(lines)
+
             if has_reached_limit:
                 log_text += f"\n\n---- reached record read limit ({limit}) ----"
             logs_by_try_number[try_number] = log_text

@@ -50,13 +50,16 @@ logging_config_class = airflow_db_logger.LOGGING_CONFIG
 log_level = INFO
 processor_log_level = 
 
-# If true, show logs in reverse order
+# Log flags
 show_reverse_order = false 
+show_log_splash = true
 
 # Write control
 write_dag_processing_to_db = false
 # Auto defaults to true in DebugExecutor
 write_to_shell = false 
+# Internal default
+log_splash =
 
 # SQL Alchemy config
 sql_alchemy_schema = 

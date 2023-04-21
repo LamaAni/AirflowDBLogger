@@ -10,6 +10,10 @@ AIRFLOW_VERSION_PARTS = AIRFLOW_VERSION.split(".")
 AIRFLOW_VERSION_PARTS = [int(v) for v in AIRFLOW_VERSION_PARTS]
 AIRFLOW_MAJOR_VERSION = AIRFLOW_VERSION_PARTS[0]
 
+DB_LOGGER_DEFAULT_LOG_SPLASH = """
+--- AIrflow DBLogger: logs loaded from database ---
+"""
+
 
 def conf_get_no_warnings_no_errors(*args, **kwargs):
     old_level = log.level
@@ -83,6 +87,8 @@ SQL_ALCHEMY_SCHEMA = get(collection=__add_core("database"), key="sql_alchemy_sch
 DB_LOGGER_LOG_LEVEL = get(key="logging_level", default="INFO").upper()
 DB_LOGGER_PROCESSOR_LOG_LEVEL = get("processor_log_level", default=LOG_LEVEL, allow_empty=True, otype=str)
 DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
+DB_LOGGER_SHOW_LOG_SPLASH = get("show_log_splash", True)
+DB_LOGGER_LOG_SPLASH = get("log_splash", DB_LOGGER_DEFAULT_LOG_SPLASH)
 
 DB_LOGGER_SQL_ALCHEMY_SCHEMA = get("sql_alchemy_schema", SQL_ALCHEMY_SCHEMA)
 DB_LOGGER_SQL_ALCHEMY_CONNECTION = get("sql_alchemy_conn", SQL_ALCHEMY_CONN)
