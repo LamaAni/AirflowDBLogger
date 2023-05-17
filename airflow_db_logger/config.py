@@ -82,7 +82,7 @@ IS_USING_COLORED_CONSOLE = get(collection=__add_core("logging"), key="colored_co
 SQL_ALCHEMY_CONN = get(collection=__add_core("database"), key="sql_alchemy_conn", allow_empty=False)
 SQL_ALCHEMY_SCHEMA = get(collection=__add_core("database"), key="sql_alchemy_schema", allow_empty=True)
 
-DB_LOGGER_LOG_LEVEL = get(key="logging_level", default="INFO").upper()
+DB_LOGGER_LOG_LEVEL = get(key="logging_level", default=LOG_LEVEL).upper()
 DB_LOGGER_PROCESSOR_LOG_LEVEL = get("processor_log_level", default=LOG_LEVEL, allow_empty=True, otype=str)
 DB_LOGGER_SHOW_REVERSE_ORDER = get("show_reverse", False)
 DB_LOGGER_SHOW_LOG_SPLASH = get("show_log_splash", True)
