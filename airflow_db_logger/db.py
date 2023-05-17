@@ -117,17 +117,29 @@ def init_db(reset=False, engine: Engine = None):
 def check_cli_for_init_db(reset: bool = None, engine: Engine = None):
     """Returns true if the cli command is for initializing the database."""
 
+    call_init_db = False
+    if "initdb" in sys.argv:
+        call_init_db = True
+
+    if "db" in sys.argv and ("reset" in sys.argv or "init" in sys.argv or "upgrade" in sys.argv):
+        call_init_db = True
+
+    if not call_init_db:
+        return False
+
     if reset is None:
         reset = False
         # Old system
-        if "initdb" in sys.argv or "upgradedb" in sys.argv or "resetdb" in sys.argv:
+        if "resetdb" in sys.argv:
             reset = "resetdb" in sys.argv
 
         # New system
-        if "db" in sys.argv and ("reset" in sys.argv or "init" in sys.argv or "upgrade" in sys.argv):
+        if "db" in sys.argv and "reset" in sys.argv:
             reset = "reset" in sys.argv
 
     init_db(reset=reset, engine=engine)
+
+    return True
 
 
 def create_db_logger_sqlalchemy_session() -> Session:

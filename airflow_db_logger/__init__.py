@@ -24,5 +24,6 @@ configure_logging()
 
 if __name__ == "__main__":
     import json
+    from airflow_db_logger.log import airflow_db_logger_log
 
-    print(json.dumps(LOGGING_CONFIG, indent=2))
+    airflow_db_logger_log.info("Test complete")
