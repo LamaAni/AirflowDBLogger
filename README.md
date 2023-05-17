@@ -47,7 +47,7 @@ logging_config_class = airflow_db_logger.LOGGING_CONFIG
 [db_logger]
 # Defaults loaded from airflow config
 
-log_level = INFO
+logging_level = INFO
 processor_log_level = 
 
 # Log flags
